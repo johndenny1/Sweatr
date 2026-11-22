@@ -25,3 +25,7 @@ create policy "update own parlays" on public.parlays
 
 create policy "delete own parlays" on public.parlays
   for delete using (auth.uid() = user_id);
+
+-- Newer Supabase projects don't auto-grant table access to signed-in users.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.parlays to authenticated;
