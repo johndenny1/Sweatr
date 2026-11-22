@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getGameDetail } from '../lib/api.js';
 import { evaluateLeg, describeLeg } from '../lib/evaluate.js';
-import { legChance, pct } from '../lib/odds.js';
 
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
 
@@ -201,23 +200,6 @@ export default function GameView({ league, gameId, date, legs = [], onBack }) {
         <TeamBlock team={home} hasBall={hasBall(home)} alignRight />
       </div>
 
-      {game?.homeWinPct != null && !game.isFinal && (
-        <div className="card stack wp">
-          <div className="row between small">
-            <span>
-              {away?.abbr} {pct(1 - game.homeWinPct)}
-            </span>
-            <span className="label">Win probability</span>
-            <span>
-              {home?.abbr} {pct(game.homeWinPct)}
-            </span>
-          </div>
-          <div className="wp-bar">
-            <div style={{ width: `${Math.round((1 - game.homeWinPct) * 100)}%` }} />
-          </div>
-        </div>
-      )}
-
       <Situation detail={detail} league={league} />
       <Linescore detail={detail} />
 
@@ -226,15 +208,11 @@ export default function GameView({ league, gameId, date, legs = [], onBack }) {
           <div className="label">Your legs</div>
           {legs.map((leg) => {
             const r = evaluateLeg(leg, game, detail.players);
-            const chance = legChance(leg, game, detail.players, r);
             return (
               <div key={leg.id} className={`leg status-${r.status}`}>
                 <div className="row between">
                   <div>{describeLeg(leg)}</div>
-                  <div className="row gap">
-                    {chance != null && r.status !== 'won' && r.status !== 'lost' && <span className="chance">{pct(chance)}</span>}
-                    <span className={`pill status-${r.status}`}>{STATUS_TEXT[r.status]}</span>
-                  </div>
+                  <span className={`pill status-${r.status}`}>{STATUS_TEXT[r.status]}</span>
                 </div>
                 {r.progress !== undefined && (
                   <div className="bar">
