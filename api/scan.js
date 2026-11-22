@@ -85,8 +85,11 @@ export default async function handler(req, res) {
 }
 
 // Google Gemini — has a free tier (free-tier requests may be used by Google to improve its products).
-async function askGemini(key, image, text) {
-  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+// Free models get overloaded at busy times, so retry once and then fall back to other free models.
+const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function geminiOnce(key, model, image, text) {
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
@@ -96,12 +99,30 @@ async function askGemini(key, image, text) {
     }),
   });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    const msg = data?.error?.message || `Gemini returned ${r.status}`;
-    return { error: r.status === 429 ? 'Free scan limit hit for now. Try again in a minute.' : msg };
-  }
+  if (!r.ok) return { status: r.status, error: data?.error?.message || `Gemini returned ${r.status}` };
   const parts = data?.candidates?.[0]?.content?.parts || [];
   return { text: parts.map((p) => p.text || '').join('') };
+}
+
+async function askGemini(key, image, text) {
+  const models = [...new Set([process.env.GEMINI_MODEL, ...GEMINI_FALLBACKS].filter(Boolean))];
+  let last = null;
+  for (const [i, model] of models.entries()) {
+    for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
+      const result = await geminiOnce(key, model, image, text);
+      if (result.text) return result;
+      last = result;
+      // Busy / rate-limited / server error → try again or move on. 404 = model name not available → move on.
+      if (![429, 500, 502, 503, 504, 404].includes(result.status)) return { error: result.error };
+      if (attempt === 0 && i === 0) await sleep(1200);
+    }
+  }
+  return {
+    error:
+      last?.status === 429
+        ? 'Free scan limit hit for now. Try again in a minute.'
+        : "Google's free scanner is busy right now. Try again in a minute, or add the legs by hand.",
+  };
 }
 
 // Anthropic Claude — paid, used if no Gemini key is set.
