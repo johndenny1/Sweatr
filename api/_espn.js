@@ -110,3 +110,128 @@ export function normalizeRoster(data, teamAbbr) {
   }
   return list;
 }
+
+// ---------- full game view: situation, linescore, team stats, play-by-play ----------
+
+const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v?.value ?? v));
+
+function teamSide(c, sbComp) {
+  const sb = sbComp?.competitors?.find((x) => String(x.team?.id) === String(c.team?.id));
+  const team = c.team || {};
+  return {
+    id: String(team.id || ''),
+    abbr: team.abbreviation || '',
+    name: team.displayName || team.name || team.abbreviation || '',
+    logo: team.logos?.[0]?.href || team.logo || sb?.team?.logo || null,
+    color: team.color ? `#${team.color}` : sb?.team?.color ? `#${sb.team.color}` : null,
+    record: c.record?.[0]?.summary || c.record?.[0]?.displayValue || sb?.records?.[0]?.summary || '',
+    score: num(c.score),
+    linescore: (c.linescores || sb?.linescores || []).map((l) => l.displayValue ?? String(l.value ?? '')),
+    possession: c.possession === true,
+  };
+}
+
+function footballPlays(drives) {
+  const list = [...(drives?.previous || []), ...(drives?.current ? [drives.current] : [])];
+  const seen = new Set();
+  const out = [];
+  for (const d of list) {
+    for (const p of d.plays || []) {
+      if (!p.text || seen.has(p.id)) continue;
+      seen.add(p.id);
+      out.push({
+        id: String(p.id),
+        text: p.text,
+        clock: p.clock?.displayValue || '',
+        period: p.period?.number ?? null,
+        periodLabel: p.period?.displayValue || null,
+        down: p.start?.downDistanceText || p.start?.shortDownDistanceText || '',
+        teamId: p.start?.team?.id ? String(p.start.team.id) : d.team?.id ? String(d.team.id) : null,
+        scoring: p.scoringPlay === true || (p.scoreValue || 0) > 0,
+        type: p.type?.text || '',
+        homeScore: num(p.homeScore),
+        awayScore: num(p.awayScore),
+      });
+    }
+  }
+  return out;
+}
+
+function otherPlays(plays) {
+  return (plays || [])
+    .filter((p) => p.text)
+    .map((p) => ({
+      id: String(p.id),
+      text: p.text,
+      clock: p.clock?.displayValue || '',
+      period: p.period?.number ?? null,
+      periodLabel: p.period?.displayValue || null,
+      down: '',
+      teamId: p.team?.id ? String(p.team.id) : null,
+      scoring: p.scoringPlay === true,
+      type: p.type?.text || '',
+      homeScore: num(p.homeScore),
+      awayScore: num(p.awayScore),
+    }));
+}
+
+function situationFrom(sb, drives, sides) {
+  const s = sb?.situation;
+  const lastDrivePlay = drives?.current?.plays?.at?.(-1);
+  const sit = {
+    downDistance: s?.downDistanceText || lastDrivePlay?.end?.downDistanceText || '',
+    possessionTeamId: s?.possession
+      ? String(s.possession)
+      : lastDrivePlay?.end?.team?.id
+        ? String(lastDrivePlay.end.team.id)
+        : drives?.current?.team?.id
+          ? String(drives.current.team.id)
+          : sides.find((t) => t.possession)?.id || null,
+    redZone: s?.isRedZone === true,
+    homeTimeouts: s?.homeTimeouts ?? null,
+    awayTimeouts: s?.awayTimeouts ?? null,
+    balls: s?.balls ?? null,
+    strikes: s?.strikes ?? null,
+    outs: s?.outs ?? null,
+    onFirst: s?.onFirst === true,
+    onSecond: s?.onSecond === true,
+    onThird: s?.onThird === true,
+    batter: s?.batter?.athlete?.displayName || s?.batter?.athlete?.shortName || '',
+    pitcher: s?.pitcher?.athlete?.displayName || s?.pitcher?.athlete?.shortName || '',
+    lastPlay: s?.lastPlay?.text || '',
+  };
+  return sit;
+}
+
+export function normalizeDetail(summary, scoreboard, eventId) {
+  const { game, players } = normalizeSummary(summary, eventId);
+  const comp = summary?.header?.competitions?.[0];
+  const sbEvent = (scoreboard?.events || []).find((e) => String(e.id) === String(eventId));
+  const sbComp = sbEvent?.competitions?.[0];
+
+  const sides = (comp?.competitors || sbComp?.competitors || []).map((c) => ({ ...teamSide(c, sbComp), homeAway: c.homeAway }));
+  const home = sides.find((t) => t.homeAway === 'home') || null;
+  const away = sides.find((t) => t.homeAway === 'away') || null;
+
+  const plays = summary?.drives ? footballPlays(summary.drives) : otherPlays(summary?.plays);
+
+  const teamStats = (summary?.boxscore?.teams || []).map((t) => ({
+    id: String(t.team?.id || ''),
+    abbr: t.team?.abbreviation || '',
+    stats: (t.statistics || [])
+      .filter((s) => s.displayValue !== undefined && (s.label || s.name))
+      .map((s) => ({ key: s.name || s.label, label: s.label || s.name, value: s.displayValue })),
+  }));
+
+  return {
+    game,
+    players,
+    home,
+    away,
+    venue: summary?.gameInfo?.venue?.fullName || '',
+    broadcast: sbComp?.broadcasts?.[0]?.names?.[0] || comp?.broadcasts?.[0]?.media?.shortName || '',
+    situation: game?.isLive ? situationFrom(sbComp, summary?.drives, sides) : null,
+    plays: plays.slice(-120).reverse(), // newest first
+    teamStats,
+  };
+}

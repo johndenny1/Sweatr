@@ -14,6 +14,8 @@ async function call(params) {
 export const getGames = (league, date) => call({ action: 'games', league, date });
 export const getRoster = (league, team) => call({ action: 'roster', league, team });
 export const getBox = (league, gameId) => call({ action: 'box', league, gameId });
+export const getGameDetail = (league, gameId, date) =>
+  call({ action: 'game', league, gameId, ...(date ? { date } : {}) });
 
 export function todayISO() {
   const d = new Date();

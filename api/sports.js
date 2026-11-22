@@ -1,6 +1,7 @@
 // GET /api/sports?action=games&league=nba&date=2026-11-22
 // GET /api/sports?action=roster&league=nba&team=20        (ESPN team id)
 // GET /api/sports?action=box&league=nba&gameId=401910023  (ESPN event id)
+// GET /api/sports?action=game&league=nfl&gameId=401873070&date=2026-11-22  (full game view)
 //
 // Live data from ESPN's public feeds, reshaped for the app. Only answers
 // signed-in users so the endpoint isn't an open proxy.
@@ -14,6 +15,7 @@ import {
   normalizeScoreboard,
   normalizeSummary,
   normalizeRoster,
+  normalizeDetail,
 } from './_espn.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -25,6 +27,19 @@ export default async function handler(req, res) {
 
     const { action, league, date, team, gameId } = req.query;
     if (!LEAGUES[league]) return res.status(400).json({ error: 'Unknown league' });
+
+    // Full game view: summary + that day's scoreboard (for live situation).
+    if (action === 'game' && ID_RE.test(gameId || '')) {
+      const [sumRes, sbRes] = await Promise.all([
+        fetch(summaryUrl(league, gameId)),
+        DATE_RE.test(date || '') ? fetch(scoreboardUrl(league, date)) : Promise.resolve(null),
+      ]);
+      if (!sumRes.ok) return res.status(502).json({ error: `ESPN returned ${sumRes.status}` });
+      const summary = await sumRes.json();
+      const scoreboard = sbRes && sbRes.ok ? await sbRes.json().catch(() => null) : null;
+      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=5');
+      return res.status(200).json(normalizeDetail(summary, scoreboard, gameId));
+    }
 
     let url;
     let cacheSeconds;

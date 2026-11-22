@@ -6,7 +6,7 @@ import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
 const REFRESH_MS = 30_000;
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
 
-export default function ParlayView({ id, onBack }) {
+export default function ParlayView({ id, onBack, onOpenGame }) {
   const [parlay, setParlay] = useState(null);
   const [boxes, setBoxes] = useState({}); // key `${league}:${gameId}` → { game, players }
   const [updated, setUpdated] = useState(null);
@@ -99,7 +99,12 @@ export default function ParlayView({ id, onBack }) {
         const game = g.box?.game;
         return (
           <div key={g.key} className="card stack">
-            <div className="row between game-head">
+            <button
+              className="row between game-head game-link"
+              onClick={() =>
+                onOpenGame?.(g.leg.league, g.leg.gameId, g.leg.date, g.items.map((x) => x.leg))
+              }
+            >
               <div className="title">
                 {game ? `${game.away} ${game.awayScore ?? ''}` : g.leg.away}
                 <span className="muted"> @ </span>
@@ -117,8 +122,9 @@ export default function ParlayView({ id, onBack }) {
                         })
                       : game.status)
                   : g.leg.league.toUpperCase()}
+                <span className="watch">›</span>
               </div>
-            </div>
+            </button>
 
             {g.items.map(({ leg, result }) => (
               <div key={leg.id} className={`leg status-${result.status}`}>

@@ -4,11 +4,12 @@ import Auth from './components/Auth.jsx';
 import ParlayList from './components/ParlayList.jsx';
 import ParlayBuilder from './components/ParlayBuilder.jsx';
 import ParlayView from './components/ParlayView.jsx';
+import GameView from './components/GameView.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
-  // view: { name: 'list' } | { name: 'new' } | { name: 'parlay', id }
+  // view: { name: 'list' } | { name: 'new' } | { name: 'parlay', id } | { name: 'game', parlayId, league, gameId, date, legs }
   const [view, setView] = useState({ name: 'list' });
 
   useEffect(() => {
@@ -43,7 +44,24 @@ export default function App() {
             onSaved={(id) => setView({ name: 'parlay', id })}
           />
         )}
-        {view.name === 'parlay' && <ParlayView id={view.id} onBack={() => setView({ name: 'list' })} />}
+        {view.name === 'parlay' && (
+          <ParlayView
+            id={view.id}
+            onBack={() => setView({ name: 'list' })}
+            onOpenGame={(league, gameId, date, legs) =>
+              setView({ name: 'game', parlayId: view.id, league, gameId, date, legs })
+            }
+          />
+        )}
+        {view.name === 'game' && (
+          <GameView
+            league={view.league}
+            gameId={view.gameId}
+            date={view.date}
+            legs={view.legs}
+            onBack={() => setView({ name: 'parlay', id: view.parlayId })}
+          />
+        )}
       </main>
     </div>
   );
