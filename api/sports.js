@@ -5,14 +5,8 @@
 // Proxies SportsDataIO so the API key never reaches the browser, and only
 // answers signed-in users so strangers can't burn through your paid quota.
 
-import { createClient } from '@supabase/supabase-js';
+import { requireUser } from './_auth.js';
 import { LEAGUES, apiKeyFor, normalizeGame, normalizeBox, normalizePlayer } from './_sportsdata.js';
-
-const rawUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
-const supabase = createClient(
-  rawUrl ? new URL(rawUrl).origin : rawUrl,
-  (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim()
-);
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TEAM_RE = /^[A-Za-z0-9]{1,10}$/;
@@ -20,10 +14,7 @@ const ID_RE = /^\d{1,12}$/;
 
 export default async function handler(req, res) {
   try {
-    const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    if (!token) return res.status(401).json({ error: 'Not signed in' });
-    const { data: auth, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !auth?.user) return res.status(401).json({ error: 'Session expired' });
+    if (!(await requireUser(req, res))) return;
 
     const { action, league, date, team, gameId } = req.query;
     const cfg = LEAGUES[league];

@@ -94,3 +94,4 @@ button:disabled { opacity: 0.4; cursor: default; }
 .auth { background: radial-gradient(ellipse at top, rgba(123, 47, 247, 0.18), transparent 60%); min-height: 100vh; max-width: none; align-items: stretch; }
 .auth > * { width: 100%; max-width: 380px; margin-left: auto; margin-right: auto; }
 .topbar { border-bottom: 2px solid var(--accent); margin-bottom: 16px; }
+.warn { border-color: var(--live); }
