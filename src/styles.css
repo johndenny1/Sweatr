@@ -147,3 +147,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .team-stats { width: 100%; border-collapse: collapse; }
 .team-stats th { font-family: var(--block); font-weight: 400; padding-bottom: 8px; }
 .team-stats td { padding: 8px 4px; border-top: 1px solid var(--line); text-align: center; }
+
+/* ---------- hit chances ---------- */
+.chance { font-family: var(--block); color: var(--accent-hi); font-size: 0.95rem; min-width: 42px; text-align: right; }
+.hero-chance { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 2px; }
+.chance-big { font-family: var(--logo); font-size: 2.2rem; color: var(--accent-hi); line-height: 1; }
+.wp-bar { height: 10px; background: var(--text); border-radius: 2px; overflow: hidden; }
+.wp-bar > div { height: 100%; background: var(--accent); transition: width 0.6s ease; }

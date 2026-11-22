@@ -46,6 +46,8 @@ function normalizeCompetition(id, comp, start) {
     isLive,
     isFinal,
     detail: isLive || isFinal || /postpone|cancel|suspend|delay/i.test(type.name || '') ? type.shortDetail || '' : '',
+    period: typeof status.period === 'number' ? status.period : null,
+    clock: status.displayClock || '',
   };
 }
 
@@ -87,6 +89,17 @@ export function normalizeSummary(data, eventId) {
         addStats(byId.get(id).stats, name, group.keys || [], a.stats || []);
       }
     }
+  }
+  // ESPN's live win probability (updates every play). Pregame falls back to ESPN's predictor if present.
+  const wp = Array.isArray(data?.winprobability) ? data.winprobability.at(-1) : null;
+  const pre = Number(data?.predictor?.homeTeam?.gameProjection);
+  if (game) {
+    game.homeWinPct =
+      wp && Number.isFinite(Number(wp.homeWinPercentage))
+        ? Number(wp.homeWinPercentage)
+        : Number.isFinite(pre) && pre > 0
+          ? pre / 100
+          : null;
   }
   return { game, players: [...byId.values()] };
 }

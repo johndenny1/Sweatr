@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { getBox } from '../lib/api.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
+import { legChance, parlayChance, pct } from '../lib/odds.js';
 
 const REFRESH_MS = 30_000;
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
@@ -43,7 +44,8 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
   const legResults = parlay
     ? parlay.legs.map((leg) => {
         const box = boxes[`${leg.league}:${leg.gameId}`];
-        return { leg, box, result: evaluateLeg(leg, box?.game, box?.players) };
+        const result = evaluateLeg(leg, box?.game, box?.players);
+        return { leg, box, result, chance: legChance(leg, box?.game, box?.players, result) };
       })
     : [];
   const allFinal = legResults.length > 0 && legResults.every((r) => r.box?.game?.isFinal);
@@ -67,6 +69,7 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
 
   const overall = parlayStatus(legResults.map((r) => r.result));
   const hits = legResults.filter((r) => r.result.status === 'won').length;
+  const overallChance = overall === 'lost' ? 0 : parlayChance(legResults.map((r) => r.chance));
 
   // Group legs under their game
   const groups = [];
@@ -88,6 +91,12 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
           <h2>{parlay.name}</h2>
           <span className={`pill status-${overall}`}>{STATUS_TEXT[overall]}</span>
         </div>
+        {overallChance != null && (
+          <div className="hero-chance">
+            <span className="chance-big">{pct(overallChance)}</span>
+            <span className="muted small">chance to cash</span>
+          </div>
+        )}
         <div className="muted small">
           {hits}/{parlay.legs.length} legs hit
           {parlay.odds ? ` · ${parlay.odds}` : ''}
@@ -126,11 +135,16 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
               </div>
             </button>
 
-            {g.items.map(({ leg, result }) => (
+            {g.items.map(({ leg, result, chance }) => (
               <div key={leg.id} className={`leg status-${result.status}`}>
                 <div className="row between">
                   <div>{describeLeg(leg)}</div>
-                  <span className={`pill status-${result.status}`}>{STATUS_TEXT[result.status]}</span>
+                  <div className="row gap">
+                    {chance != null && result.status !== 'won' && result.status !== 'lost' && (
+                      <span className="chance">{pct(chance)}</span>
+                    )}
+                    <span className={`pill status-${result.status}`}>{STATUS_TEXT[result.status]}</span>
+                  </div>
                 </div>
                 {result.progress !== undefined && (
                   <div className="bar">
@@ -148,6 +162,7 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
       })}
 
       {error && <p className="error">{error}</p>}
+      <p className="muted small center">Hit chances are Sweatr estimates, not sportsbook odds.</p>
       <p className="muted small center">
         {allFinal ? 'All games final' : `Auto-refreshes every ${REFRESH_MS / 1000}s`}
         {updated ? ` · updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
