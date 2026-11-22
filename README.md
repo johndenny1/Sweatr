@@ -24,7 +24,7 @@ Upload this folder to a new repo. Keep the structure exactly as it is: `api/`, `
 2. Add the environment variables from `.env.example`:
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
    - `SPORTSDATA_API_KEY` (one key), **or** `SPORTSDATA_KEY_NFL`, `_NBA`, `_MLB`, `_CFB`, `_CBB` (one per league)
-   - `ANTHROPIC_API_KEY` from console.anthropic.com, for screenshot scanning
+   - `GEMINI_API_KEY` from aistudio.google.com (free tier) **or** `ANTHROPIC_API_KEY`, for screenshot scanning
 3. Deploy.
 
 ## How it works
@@ -35,7 +35,7 @@ Upload this folder to a new repo. Keep the structure exactly as it is: `api/`, `
 | `api/_sportsdata.js` | Endpoint paths per league + converts each league's data into one shape. **If a league errors, fix its path here.** |
 | `src/lib/stats.js` | Prop markets per league (Points, PRA, Passing Yards, Hits…). Add new props here. |
 | `src/lib/evaluate.js` | Decides if each leg is pending / live / hit / miss / push. Overs lock in as soon as they clear, unders bust as soon as they go over. |
-| `api/scan.js` | Sends a bet-slip screenshot to Claude and returns the legs as JSON. |
+| `api/scan.js` | Sends a bet-slip screenshot to Gemini (free) or Claude and returns the legs as JSON. |
 | `src/lib/scan.js` | Shrinks the screenshot, then matches each leg to a real game and player (handles nicknames and abbreviation differences). |
 | `src/components/LegForm.jsx` | League → date → game → bet type → player/stat/line. |
 | `src/components/ParlayView.jsx` | Live tracker. Polls every 30s until every game is final. |

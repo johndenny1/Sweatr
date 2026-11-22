@@ -1,5 +1,5 @@
 // POST /api/scan  { image: <base64 jpeg>, today: "YYYY-MM-DD" }
-// Sends a bet-slip screenshot to Claude and returns the legs it reads off it.
+// Sends a bet-slip screenshot to Gemini (free tier) or Claude and returns the legs it reads off it.
 // Matching those legs to real games/players happens in the browser (src/lib/scan.js).
 
 import { requireUser } from './_auth.js';
@@ -49,42 +49,23 @@ export default async function handler(req, res) {
   try {
     if (!(await requireUser(req, res))) return;
 
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key) return res.status(500).json({ error: 'ANTHROPIC_API_KEY is not set in Vercel' });
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (!geminiKey && !anthropicKey) {
+      return res.status(500).json({ error: 'Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in Vercel' });
+    }
 
     const { image, today } = req.body || {};
     if (typeof image !== 'string' || image.length < 100) return res.status(400).json({ error: 'No image received' });
     if (image.length > 5_500_000) return res.status(413).json({ error: 'Image too large' });
     const day = /^\d{4}-\d{2}-\d{2}$/.test(today || '') ? today : new Date().toISOString().slice(0, 10);
 
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
-              { type: 'text', text: prompt(day) },
-            ],
-          },
-        ],
-      }),
-    });
+    const result = geminiKey
+      ? await askGemini(geminiKey, image, prompt(day))
+      : await askClaude(anthropicKey, image, prompt(day));
+    if (result.error) return res.status(502).json({ error: result.error });
 
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      return res.status(502).json({ error: data?.error?.message || `Claude API returned ${upstream.status}` });
-    }
-
-    const text = (data.content || []).map((c) => c.text || '').join('');
+    const text = result.text;
     const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
     let parsed;
     try {
@@ -101,4 +82,48 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
+}
+
+// Google Gemini — has a free tier (free-tier requests may be used by Google to improve its products).
+async function askGemini(key, image, text) {
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ inline_data: { mime_type: 'image/jpeg', data: image } }, { text }] }],
+      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const msg = data?.error?.message || `Gemini returned ${r.status}`;
+    return { error: r.status === 429 ? 'Free scan limit hit for now. Try again in a minute.' : msg };
+  }
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  return { text: parts.map((p) => p.text || '').join('') };
+}
+
+// Anthropic Claude — paid, used if no Gemini key is set.
+async function askClaude(key, image, text) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
+      max_tokens: 2000,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
+            { type: 'text', text },
+          ],
+        },
+      ],
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) return { error: data?.error?.message || `Claude API returned ${r.status}` };
+  return { text: (data.content || []).map((c) => c.text || '').join('') };
 }
