@@ -7,7 +7,7 @@ import { requireUser } from './_auth.js';
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
 NFL / college football (cfb): passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), int (interceptions thrown)
-MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), tb (total bases), sb (stolen bases), k (pitcher strikeouts)`;
+MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
 function prompt(today) {
   return `This is a screenshot of a sports betting slip (parlay). Today is ${today}.
@@ -21,7 +21,7 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
       "type": "prop" | "moneyline" | "spread" | "total",
       "player": string or null,     // full player name for props
-      "team": string or null,       // standard abbreviation: the player's team (prop) or the picked team (moneyline/spread), e.g. "BOS", "KC", "LAD", "DUKE"
+      "team": string or null,       // standard abbreviation: the player's team (prop) or the picked team (moneyline/spread), e.g. "BOS", "KC", "LAD", "DUKE" (ESPN-style abbreviations)
       "opponent": string or null,   // abbreviation of the other team if shown
       "stat": string or null,       // for props, one of the ids below
       "side": "over" | "under" | null,

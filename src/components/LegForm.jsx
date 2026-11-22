@@ -48,8 +48,14 @@ export default function LegForm({ onAdd, onCancel }) {
     setPick('');
     if (!game) return;
     setLoading('players');
-    Promise.all([getRoster(league, game.away), getRoster(league, game.home)])
-      .then(([a, h]) => setPlayers([...a, ...h].sort((x, y) => x.name.localeCompare(y.name))))
+    Promise.all([getRoster(league, game.awayId), getRoster(league, game.homeId)])
+      .then(([a, h]) =>
+        setPlayers(
+          [...a.map((p) => ({ ...p, team: p.team || game.away })), ...h.map((p) => ({ ...p, team: p.team || game.home }))].sort(
+            (x, y) => x.name.localeCompare(y.name)
+          )
+        )
+      )
       .catch((e) => setError(e.message))
       .finally(() => setLoading(''));
   }, [gameId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -76,6 +82,8 @@ export default function LegForm({ onAdd, onCancel }) {
       gameLabel: `${game.away} @ ${game.home}`,
       home: game.home,
       away: game.away,
+      homeId: game.homeId,
+      awayId: game.awayId,
       date,
       type,
       ...(type === 'prop' && {

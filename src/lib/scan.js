@@ -55,7 +55,7 @@ const norm = (s) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-// Sportsbooks and SportsDataIO don't always agree on abbreviations.
+// Sportsbooks and ESPN don't always agree on abbreviations.
 const TEAM_ALIASES = [
   ['gs', 'gsw'], ['ny', 'nyk'], ['sa', 'sas'], ['no', 'nop', 'nor'], ['pho', 'phx'],
   ['uta', 'utah', 'uth'], ['was', 'wsh', 'wash'], ['bkn', 'bk', 'brk'], ['cha', 'cho'],
@@ -130,6 +130,8 @@ export async function resolveLegs(rawLegs) {
       gameLabel: `${game.away} @ ${game.home}`,
       home: game.home,
       away: game.away,
+      homeId: game.homeId,
+      awayId: game.awayId,
       date,
     };
     const line = Number(raw.line);
@@ -142,7 +144,10 @@ export async function resolveLegs(rawLegs) {
         unmatched.push({ label, reason: 'Prop type not supported yet' });
         continue;
       }
-      const players = [...(await roster(league, game.away)), ...(await roster(league, game.home))];
+      const players = [
+        ...(await roster(league, game.awayId)).map((p) => ({ ...p, team: p.team || game.away })),
+        ...(await roster(league, game.homeId)).map((p) => ({ ...p, team: p.team || game.home })),
+      ];
       const player = players.find((p) => sameName(p.name, raw.player));
       if (!player) {
         unmatched.push({ label, reason: `Couldn't find ${raw.player || 'the player'}` });

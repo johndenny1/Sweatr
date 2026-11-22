@@ -1,15 +1,22 @@
 // GET /api/sports?action=games&league=nba&date=2026-11-22
-// GET /api/sports?action=roster&league=nba&team=BOS
-// GET /api/sports?action=box&league=nba&gameId=12345
+// GET /api/sports?action=roster&league=nba&team=20        (ESPN team id)
+// GET /api/sports?action=box&league=nba&gameId=401910023  (ESPN event id)
 //
-// Proxies SportsDataIO so the API key never reaches the browser, and only
-// answers signed-in users so strangers can't burn through your paid quota.
+// Live data from ESPN's public feeds, reshaped for the app. Only answers
+// signed-in users so the endpoint isn't an open proxy.
 
 import { requireUser } from './_auth.js';
-import { LEAGUES, apiKeyFor, normalizeGame, normalizeBox, normalizePlayer } from './_sportsdata.js';
+import {
+  LEAGUES,
+  scoreboardUrl,
+  summaryUrl,
+  rosterUrl,
+  normalizeScoreboard,
+  normalizeSummary,
+  normalizeRoster,
+} from './_espn.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const TEAM_RE = /^[A-Za-z0-9]{1,10}$/;
 const ID_RE = /^\d{1,12}$/;
 
 export default async function handler(req, res) {
@@ -17,41 +24,32 @@ export default async function handler(req, res) {
     if (!(await requireUser(req, res))) return;
 
     const { action, league, date, team, gameId } = req.query;
-    const cfg = LEAGUES[league];
-    if (!cfg) return res.status(400).json({ error: 'Unknown league' });
+    if (!LEAGUES[league]) return res.status(400).json({ error: 'Unknown league' });
 
-    const key = apiKeyFor(league);
-    if (!key) return res.status(500).json({ error: `No SportsDataIO key set for ${league.toUpperCase()}` });
-
-    let path;
+    let url;
     let cacheSeconds;
     if (action === 'games' && DATE_RE.test(date || '')) {
-      path = cfg.games(date);
-      cacheSeconds = 30;
-    } else if (action === 'roster' && TEAM_RE.test(team || '')) {
-      path = cfg.roster(team);
+      url = scoreboardUrl(league, date);
+      cacheSeconds = 20;
+    } else if (action === 'roster' && ID_RE.test(team || '')) {
+      url = rosterUrl(league, team);
       cacheSeconds = 60 * 60 * 6;
     } else if (action === 'box' && ID_RE.test(gameId || '')) {
-      path = cfg.box(gameId);
-      cacheSeconds = 15;
+      url = summaryUrl(league, gameId);
+      cacheSeconds = 10;
     } else {
       return res.status(400).json({ error: 'Bad request' });
     }
 
-    const upstream = await fetch(`https://api.sportsdata.io${path}`, {
-      headers: { 'Ocp-Apim-Subscription-Key': key },
-    });
-    if (!upstream.ok) {
-      return res.status(502).json({ error: `SportsDataIO returned ${upstream.status} for ${path}` });
-    }
+    const upstream = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!upstream.ok) return res.status(502).json({ error: `ESPN returned ${upstream.status}` });
     const raw = await upstream.json();
 
     let body;
-    if (action === 'games') body = (raw || []).map(normalizeGame);
-    else if (action === 'roster') body = (raw || []).map(normalizePlayer).filter((p) => p.active);
-    else body = normalizeBox(raw);
+    if (action === 'games') body = normalizeScoreboard(raw);
+    else if (action === 'roster') body = normalizeRoster(raw);
+    else body = normalizeSummary(raw, gameId);
 
-    // Short cache window so a burst of refreshes doesn't hit SportsDataIO every time.
     res.setHeader('Cache-Control', `s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds}`);
     return res.status(200).json(body);
   } catch (err) {
