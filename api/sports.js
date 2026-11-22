@@ -8,9 +8,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { LEAGUES, apiKeyFor, normalizeGame, normalizeBox, normalizePlayer } from './_sportsdata.js';
 
+const rawUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
 const supabase = createClient(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  rawUrl ? new URL(rawUrl).origin : rawUrl,
+  (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim()
 );
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
