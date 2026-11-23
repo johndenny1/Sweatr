@@ -484,3 +484,36 @@ input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-s
 .skeleton { border-radius: var(--r-card); }
 
 .scroll-x { padding: 8px 6px; margin: -8px -6px; }
+
+/* ---------- toned-down glow ---------- */
+:root {
+  --glow: 0 0 0 1px rgba(155, 92, 255, 0.28), 0 0 12px rgba(123, 47, 247, 0.18);
+  --glow-soft: 0 0 0 1px rgba(155, 92, 255, 0.12), 0 6px 20px rgba(0, 0, 0, 0.35);
+  --glow-green: 0 0 0 1px rgba(47, 227, 154, 0.35), 0 0 12px rgba(47, 227, 154, 0.12);
+  --glow-red: 0 0 0 1px rgba(255, 77, 109, 0.25);
+}
+body { background: radial-gradient(ellipse 80% 35% at 50% -5%, rgba(123, 47, 247, 0.14), transparent 70%), var(--bg); }
+.brand, .logo, .boot { text-shadow: 0 0 10px rgba(155, 92, 255, 0.35); }
+.topbar { box-shadow: 0 1px 0 rgba(155, 92, 255, 0.25); }
+.bank-net.pos, .bank-net.neg, .stat-value.pos, .scores { text-shadow: none; }
+.primary { box-shadow: 0 4px 14px rgba(123, 47, 247, 0.3); }
+.primary:active { box-shadow: 0 2px 8px rgba(123, 47, 247, 0.35); }
+.secondary, .add-leg { box-shadow: none; }
+.chip.on { box-shadow: 0 0 8px rgba(123, 47, 247, 0.35); }
+input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
+.ticket-live { animation: none; }
+.ticket-live::before, .ticket-won::before, .ticket-lost::before, .ticket-pending::before { box-shadow: none; }
+.leg-bullet { box-shadow: none; }
+.stamp-won, .stamp-lost, .stamp-live { box-shadow: none; text-shadow: none; }
+.pill.status-won, .pill.status-live, .vbadge.on, .dot { box-shadow: none; }
+.form-pip.won, .form-pip.lost { box-shadow: none; }
+.bar > div, .league-bar > div, .leg.status-won .bar > div { box-shadow: none; }
+.avatar { box-shadow: 0 0 0 2px rgba(183, 140, 255, 0.45), 0 0 10px rgba(123, 47, 247, 0.3); }
+.bottom-nav { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(155, 92, 255, 0.12); }
+.nav-item.on svg { filter: none; }
+.nav-scan { animation: none; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.9), 0 0 16px rgba(155, 92, 255, 0.45); }
+.viewfinder { box-shadow: inset 0 0 40px rgba(123, 47, 247, 0.1); }
+.corner, .viewfinder.done .corner { filter: none; }
+.vf-icon { box-shadow: none; }
+.play.scoring { box-shadow: inset 0 0 0 1px rgba(155, 92, 255, 0.3); }
+.base.on, .out.on { box-shadow: none; }
