@@ -1048,3 +1048,24 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 }
 .scout-deeper small { font-family: 'Archivo', sans-serif; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 0.75rem; color: rgba(255, 255, 255, 0.75); }
 .scout-deeper:active { transform: scale(0.98); }
+
+/* scout: strong / fair / weak = green / orange / red */
+:root { --fair: #ff9f43; }
+.scout-leg.rate-strong { border-left-color: var(--won); }
+.scout-leg.rate-fair { border-left-color: var(--fair); }
+.scout-leg.rate-weak { border-left-color: var(--lost); }
+.scout-pill.rate-strong { color: var(--won); background: rgba(47, 227, 154, 0.14); }
+.scout-pill.rate-fair { color: var(--fair); background: rgba(255, 159, 67, 0.15); }
+.scout-pill.rate-weak { color: var(--lost); background: rgba(255, 77, 109, 0.14); }
+.scout-tally .rate-strong { color: var(--won); } .scout-tally .rate-fair { color: var(--fair); } .scout-tally .rate-weak { color: var(--lost); }
+.scout-top { font-size: 0.92rem; font-weight: 600; line-height: 1.4; }
+.scout-price { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.scout-section { margin-top: 6px; }
+.scout-summary { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.45; padding: 0 4px; }
+.scout-rank { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-family: var(--block); font-size: 0.72rem; background: rgba(255, 77, 109, 0.16); color: var(--lost); }
+.scout-watch-item:nth-child(n + 3) .scout-rank { background: rgba(255, 159, 67, 0.15); color: var(--fair); }
+.scout-more { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(183, 140, 255, 0.45); background: rgba(155, 92, 255, 0.12); color: #fff; font-family: var(--block); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em; }
+.scout-more span { transition: transform 160ms ease; display: inline-block; }
+.scout-more.open span { transform: rotate(90deg); }
+.scout-detail { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid var(--line); }
+.scout-flag { font-size: 0.85rem; font-weight: 700; color: var(--lost); }

@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase.js';
 import { americanToDecimal } from '../lib/money.js';
 
-const RATING_TEXT = { strong: 'Strong', okay: 'Okay', risky: 'Risky' };
+const RATING_TEXT = { strong: 'Strong', fair: 'Fair', weak: 'Weak' };
+const RATING_ORDER = { weak: 0, fair: 1, strong: 2 }; // weakest legs first: they matter most
 const OVERALL_TONE = { Strong: 'won', Decent: 'live', Shaky: 'warn', 'Long shot': 'lost' };
 
 async function fetchScout(payload) {
@@ -70,169 +71,187 @@ export function ScoutReport({ legs, odds, stake }) {
   const data = result?.data;
   const count = (r) => report?.legs.filter((l) => l.rating === r).length || 0;
 
+  const tally = ['strong', 'fair', 'weak'].map((r) => [r, report?.legs.filter((l) => l.rating === r).length || 0]);
+  const gameInjuries = (g) => g.injuries.filter((x) => /out|doubtful|reserve|suspen/i.test(`${x.status} ${x.detail || ''}`));
+  const legsByImportance = report ? [...report.legs].sort((x, y) => RATING_ORDER[x.rating] - RATING_ORDER[y.rating] || x.i - y.i) : [];
+
   return (
-      <div className="scout-body">
-        {!result && !error && (
-          <div className="scout-loading">
-            <span className="spinner" />
-            <div>{STEPS.at(step)}…</div>
-          </div>
-        )}
-        {error && <p className="error center">{error}</p>}
+    <div className="scout-body">
+      {!result && !error && (
+        <div className="scout-loading">
+          <span className="spinner" />
+          <div>{STEPS.at(step)}…</div>
+        </div>
+      )}
+      {error && <p className="error center">{error}</p>}
 
-        {report && (
-          <>
-            <div className={`scout-overall tone-${OVERALL_TONE[report.overall] || 'live'}`}>
-              <span className="scout-grade">{report.overall}</span>
-              <div className="scout-headline">{report.headline}</div>
-              <div className="scout-tally">
-                {count('strong') > 0 && <span className="rate-strong">● {count('strong')} strong</span>}
-                {count('okay') > 0 && <span className="rate-okay">● {count('okay')} okay</span>}
-                {count('risky') > 0 && <span className="rate-risky">● {count('risky')} risky</span>}
-              </div>
-              {!deep && report.watch?.length > 0 && (
-                <ul className="scout-quick">
-                  {report.watch.slice(0, 2).map((w, i) => (
-                    <li key={i}>{w}</li>
-                  ))}
-                </ul>
-              )}
-              {deep && report.summary && <p>{report.summary}</p>}
-              <div className="scout-chips">
-                <span>{legs.length} legs</span>
-                {odds && <span>{odds}</span>}
-                {dec && <span>Book’s price: about 1 in {Math.round(dec)}</span>}
-              </div>
+      {report && (
+        <>
+          {/* 1. The simple overview */}
+          <div className={`scout-overall tone-${OVERALL_TONE[report.overall] || 'live'}`}>
+            <span className="scout-grade">{report.overall}</span>
+            <div className="scout-headline">{report.headline}</div>
+            <div className="scout-tally">
+              {tally.map(([r, n]) => n > 0 && <span key={r} className={`rate-${r}`}>● {n} {RATING_TEXT[r].toLowerCase()}</span>)}
             </div>
+            {report.watch?.[0] && <div className="scout-top">⚠️ {report.watch[0]}</div>}
+            {dec && <div className="scout-price">{odds} · the book’s price is about 1 in {Math.round(dec)}</div>}
+          </div>
 
-            {!deep && (
-              <button className="scout-deeper" onClick={() => setDeep(true)}>
-                Go deeper
-                <small>Every leg’s last 5 games, injuries, weather and news</small>
-              </button>
-            )}
+          {!deep && (
+            <button className="scout-deeper" onClick={() => setDeep(true)}>
+              Full analysis
+              <small>What to watch, every leg rated, games and weather</small>
+            </button>
+          )}
 
-            {deep && (
+          {deep && (
             <>
-            {report.watch?.length > 0 && (
-              <div className="card scout-watch">
-                <div className="label">Keep an eye on</div>
-                {report.watch.map((w, i) => (
-                  <div key={i} className="scout-watch-item">
-                    <span>👀</span>
-                    {w}
-                  </div>
+              {/* 2. Most important: what could sink it */}
+              {report.watch?.length > 0 && (
+                <div className="card scout-watch">
+                  <div className="label">Watch out for</div>
+                  {report.watch.map((w, i) => (
+                    <div key={i} className="scout-watch-item">
+                      <span className="scout-rank">{i + 1}</span>
+                      {w}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {report.summary && <p className="scout-summary">{report.summary}</p>}
+
+              {/* 3. Legs, weakest first */}
+              <div className="label scout-section">Every leg · weakest first</div>
+              <div className="scout-legs">
+                {legsByImportance.map((r) => (
+                  <ScoutLeg key={r.i} r={r} d={data.legs.find((x) => x.i === r.i) || {}} pending={!full && !fullError} failed={Boolean(fullError)} />
                 ))}
               </div>
-            )}
 
-            {data.games.map((g) => (
-              <div key={g.key} className="card scout-game">
-                <div className="row between">
-                  <b>{g.matchup}</b>
-                  {g.start && (
-                    <span className="muted small">
-                      {new Date(g.start).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+              {/* 4. Least important: game conditions */}
+              <div className="label scout-section">Game conditions</div>
+              {data.games.map((g) => (
+                <div key={g.key} className="card scout-game">
+                  <div className="row between">
+                    <b>{g.matchup}</b>
+                    {g.start && (
+                      <span className="muted small">
+                        {new Date(g.start).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                      </span>
+                    )}
+                  </div>
+                  {gameInjuries(g).length > 0 && (
+                    <div className="scout-inj">
+                      {gameInjuries(g)
+                        .slice(0, 6)
+                        .map((x) => (
+                          <span key={x.id || x.name}>
+                            {x.team} {x.name} <em>{x.status}</em>
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                  <div className="scout-wx">
+                    {g.indoor === true && <span>🏟️ Indoors</span>}
+                    {g.weather && (
+                      <>
+                        {g.weather.gust != null && <span>💨 gusts {g.weather.gust} mph</span>}
+                        {g.weather.precip != null && g.weather.precip > 0 && <span>🌧️ {g.weather.precip}% rain</span>}
+                        {g.weather.temp != null && <span>🌡️ {g.weather.temp}°</span>}
+                        {g.weather.sky && <span>{g.weather.sky}</span>}
+                      </>
+                    )}
+                    {!g.weather && g.indoor !== true && <span className="muted">No weather listed</span>}
+                    {Object.entries(g.records || {}).map(([t, rec]) => rec && <span key={t}>{t} {rec}</span>)}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          <p className="muted small center scout-foot">
+            Based on each player’s and team’s last 5 games, injury reports and the forecast. Recent games don’t guarantee
+            anything, so treat this as a second opinion.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// One leg: rating + one-line take, with its own "Analysis" button for the details
+function ScoutLeg({ r, d, pending, failed }) {
+  const [open, setOpen] = useState(false);
+  const hasMore = d.recent?.length || d.teams || d.news?.length || r.reasons?.length;
+  return (
+    <div className={`scout-leg rate-${r.rating}`}>
+      <div className="row between scout-leg-head">
+        <span className="scout-leg-name">{d.desc}</span>
+        <span className={`scout-pill rate-${r.rating}`}>{RATING_TEXT[r.rating]}</span>
+      </div>
+      {r.take ? (
+        <div className="scout-take">{r.take}</div>
+      ) : (
+        <div className="scout-take muted">{failed ? 'Couldn’t write the details this time.' : pending ? 'Writing the details…' : ''}</div>
+      )}
+      {hasMore && (
+        <button className={`scout-more ${open ? 'open' : ''}`} onClick={() => setOpen(!open)}>
+          {open ? 'Hide analysis' : 'Analysis'} <span>›</span>
+        </button>
+      )}
+      {open && (
+        <div className="scout-detail">
+          {d.injury && (
+            <div className="scout-flag">
+              🚑 Listed as {d.injury.status}
+              {d.injury.detail ? ` (${d.injury.detail})` : ''}
+            </div>
+          )}
+          {d.news?.length > 0 && (
+            <div className="scout-news">
+              {d.news.map((a, i) => (
+                <a key={i} href={a.url || undefined} target="_blank" rel="noreferrer">
+                  📰 {a.headline} <span className="muted">· ESPN</span>
+                </a>
+              ))}
+            </div>
+          )}
+          {r.reasons?.length > 0 && (
+            <ul className="scout-reasons">
+              {r.reasons.map((x, i) => (
+                <li key={i}>{x}</li>
+              ))}
+            </ul>
+          )}
+          {d.recent?.length > 0 && <LastFive recent={d.recent} line={Number(d.line)} side={d.side} />}
+          {d.teams && (
+            <div className="scout-teams">
+              {d.teams.map((t) => (
+                <div key={t.team}>
+                  <b>{t.team}</b>
+                  {t.record ? ` (${t.record})` : ''} · last 5:{' '}
+                  <span className="scout-form">
+                    {t.last5.map((x, i) => (
+                      <i key={i} className={x.startsWith('W') ? 'w' : 'l'} title={x}>
+                        {x[0]}
+                      </i>
+                    ))}
+                  </span>
+                  {t.avgFor != null && (
+                    <span className="muted">
+                      {' '}
+                      · {t.avgFor} for, {t.avgAgainst} against
                     </span>
                   )}
+                  {t.out?.length > 0 && <div className="muted small">Out: {t.out.map((x) => x.name).join(', ')}</div>}
                 </div>
-                <div className="scout-wx">
-                  {g.indoor === true && <span>🏟️ Indoors</span>}
-                  {g.weather && (
-                    <>
-                      {g.weather.temp != null && <span>🌡️ {g.weather.temp}°</span>}
-                      {g.weather.sky && <span>{g.weather.sky}</span>}
-                      {g.weather.gust != null && <span>💨 gusts {g.weather.gust} mph</span>}
-                      {g.weather.precip != null && g.weather.precip > 0 && <span>🌧️ {g.weather.precip}% rain</span>}
-                    </>
-                  )}
-                  {!g.weather && g.indoor !== true && <span className="muted">No weather listed</span>}
-                  {Object.entries(g.records || {}).map(([t, r]) => r && <span key={t}>{t} {r}</span>)}
-                </div>
-                {g.injuries.filter((x) => /out|doubtful|reserve/i.test(x.status)).length > 0 && (
-                  <div className="scout-inj">
-                    {g.injuries
-                      .filter((x) => /out|doubtful|reserve/i.test(x.status))
-                      .slice(0, 6)
-                      .map((x) => (
-                        <span key={x.id || x.name}>
-                          {x.team} {x.name} <em>{x.status}</em>
-                        </span>
-                      ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <div className="scout-legs">
-              {report.legs.map((r) => {
-                const d = data.legs.find((x) => x.i === r.i) || {};
-                return (
-                  <div key={r.i} className={`scout-leg rate-${r.rating}`}>
-                    <div className="row between scout-leg-head">
-                      <span className="scout-leg-name">{d.desc}</span>
-                      <span className={`scout-pill rate-${r.rating}`}>{RATING_TEXT[r.rating]}</span>
-                    </div>
-                    {r.take ? (
-                      <div className="scout-take">{r.take}</div>
-                    ) : (
-                      <div className="scout-take muted">{fullError ? 'Couldn’t write the details this time.' : 'Writing the details…'}</div>
-                    )}
-                    {d.recent?.length > 0 && <LastFive recent={d.recent} line={Number(d.line)} side={d.side} />}
-                    {d.news?.length > 0 && (
-                      <div className="scout-news">
-                        {d.news.map((a, i) => (
-                          <a key={i} href={a.url || undefined} target="_blank" rel="noreferrer">
-                            📰 {a.headline} <span className="muted">· ESPN</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                    {r.reasons?.length > 0 && (
-                      <ul className="scout-reasons">
-                        {r.reasons.map((x, i) => (
-                          <li key={i}>{x}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {d.teams && (
-                      <div className="scout-teams">
-                        {d.teams.map((t) => (
-                          <div key={t.team}>
-                            <b>{t.team}</b>
-                            {t.record ? ` (${t.record})` : ''} · last 5:{' '}
-                            <span className="scout-form">
-                              {t.last5.map((x, i) => (
-                                <i key={i} className={x.startsWith('W') ? 'w' : 'l'} title={x}>
-                                  {x[0]}
-                                </i>
-                              ))}
-                            </span>
-                            {t.avgFor != null && (
-                              <span className="muted">
-                                {' '}
-                                · {t.avgFor} for, {t.avgAgainst} against
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              ))}
             </div>
-
-            </>
-            )}
-
-            <p className="muted small center scout-foot">
-              Based on each player’s and team’s last 5 games, injury reports and the forecast. Recent games don’t guarantee
-              anything, so treat this as a second opinion.
-            </p>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

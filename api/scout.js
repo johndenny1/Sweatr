@@ -8,7 +8,8 @@ import { americanToDecimal } from '../src/lib/money.js';
 
 export const config = { maxDuration: 60 };
 
-const RATINGS = ['strong', 'okay', 'risky'];
+const RATINGS = ['strong', 'fair', 'weak'];
+const LEGACY = { okay: 'fair', risky: 'weak' };
 const OVERALL = ['Strong', 'Decent', 'Shaky', 'Long shot'];
 
 // Faster models first: the scout writes short text, it doesn't need the big ones
@@ -44,9 +45,9 @@ Data (last5 = the player's last 5 values, newest first, null = didn't play; hits
 ${JSON.stringify(compact(data))}
 
 Return ONLY JSON:
-{"overall":"Strong"|"Decent"|"Shaky"|"Long shot","headline":string,"watch":[string],"ratings":[{"i":number,"r":"strong"|"okay"|"risky"}]}
+{"overall":"Strong"|"Decent"|"Shaky"|"Long shot","headline":string,"watch":[string],"ratings":[{"i":number,"r":"strong"|"fair"|"weak"}]}
 
-Rules: headline max 12 words, casual and specific. watch = up to 3 short things to keep an eye on (weather, injuries, legs that depend on each other), each under 15 words. Use only facts in the data, no hit percentages. Props clearing 4-5 of 5 with no injury lean strong, 2-3 okay, 0-1 or an injury tag risky. 10+ legs is usually a Long shot. Rate every leg.`;
+Rules: headline max 12 words, casual and specific. watch = up to 3 short things to keep an eye on (weather, injuries, legs that depend on each other), MOST important first, each under 15 words. Use only facts in the data, no hit percentages. Props clearing 4-5 of 5 with no injury lean strong, 2-3 fair, 0-1 or an injury tag weak. 10+ legs is usually a Long shot. Rate every leg.`;
 }
 
 function prompt(data, odds) {
@@ -63,15 +64,15 @@ Write the report as ONLY a JSON object:
   "overall": "Strong" | "Decent" | "Shaky" | "Long shot",
   "headline": string,          // max 12 words, casual, specific to this slip
   "summary": string,           // 2-3 sentences on the slip as a whole
-  "legs": [ { "i": number, "rating": "strong" | "okay" | "risky", "take": string, "reasons": [string] } ],
-  "watch": [string]            // up to 3 things to keep an eye on (weather, injuries, legs that depend on each other)
+  "legs": [ { "i": number, "rating": "strong" | "fair" | "weak", "take": string, "reasons": [string] } ],
+  "watch": [string]            // up to 3 things to keep an eye on (weather, injuries, legs that depend on each other), most important first
 }
 
 Rules:
 - Use ONLY numbers that are in the data. Never invent stats, matchups, trends or news. If something isn't in the data, don't mention it.
 - No hit percentages or win probabilities of your own. Talk in counts and averages ("cleared 4 of his last 5, averaging 71").
 - "take" is one short sentence. "reasons" are 1-3 short bullet-style phrases, each tied to a number or fact from the data.
-- Rating guide: props that cleared the line in 4-5 of the last 5 with no injury concern lean "strong"; 2-3 lean "okay"; 0-1, an injury tag, or bad weather for that stat lean "risky". Team legs: weigh recent results and scoring averages.
+- Rating guide: props that cleared the line in 4-5 of the last 5 with no injury concern lean "strong"; 2-3 lean "fair"; 0-1, an injury tag, or bad weather for that stat lean "weak". Team legs: weigh recent results and scoring averages.
 - "news" holds real ESPN headlines that mention the player. Use one ONLY if it changes whether he plays or how much: a suspension, league discipline, an arrest or charge reported in the headline, a trade, a new role, or time away from the team. Repeat only what the headline says, and say it came from ESPN. Never mention or guess about relationships, family, mental health or rumors, and never infer anything beyond the headline.
 - Injury entries with a type like "Suspension" or "Personal" count as availability news.
 - Weather matters for outdoor football: gusts of 15+ mph or rain/snow hurt passing and kicking. If weather is null, say nothing about weather.
@@ -84,22 +85,22 @@ Rules:
 // No AI available: simple rules from the same numbers
 function fallback(data) {
   const legs = data.legs.map((l) => {
-    let rating = 'okay';
+    let rating = 'fair';
     const reasons = [];
     if (l.games) {
       reasons.push(`Cleared it in ${l.hits} of his last ${l.games}${l.avg != null ? `, averaging ${l.avg}` : ''}`);
-      rating = l.hits >= 4 ? 'strong' : l.hits <= 1 ? 'risky' : 'okay';
+      rating = l.hits >= 4 ? 'strong' : l.hits <= 1 ? 'weak' : 'fair';
     }
     if (l.injury) {
       reasons.push(`Listed as ${l.injury.status}`);
-      rating = 'risky';
+      rating = 'weak';
     }
     return { i: l.i, rating, take: reasons[0] || 'Not enough recent data to say much.', reasons: reasons.slice(1) };
   });
   const n = data.legs.length;
-  const risky = legs.filter((l) => l.rating === 'risky').length;
-  const overall = n >= 8 ? 'Long shot' : risky >= 2 ? 'Shaky' : risky ? 'Decent' : 'Strong';
-  return { overall, headline: `${n} legs, ${risky} that look shaky`, summary: '', legs, watch: [] };
+  const weak = legs.filter((l) => l.rating === 'weak').length;
+  const overall = n >= 8 ? 'Long shot' : weak >= 2 ? 'Shaky' : weak ? 'Decent' : 'Strong';
+  return { overall, headline: `${n} legs, ${weak} that look weak`, summary: '', legs, watch: [] };
 }
 
 function clean(ai, data) {
@@ -115,7 +116,7 @@ function clean(ai, data) {
       const a = byI.get(l.i) || {};
       return {
         i: l.i,
-        rating: RATINGS.includes(a.rating) ? a.rating : fb.legs[idx].rating,
+        rating: RATINGS.includes(LEGACY[a.rating] || a.rating) ? LEGACY[a.rating] || a.rating : fb.legs[idx].rating,
         take: String(a.take || fb.legs[idx].take).slice(0, 200),
         reasons: (Array.isArray(a.reasons) ? a.reasons : fb.legs[idx].reasons).slice(0, 3).map((r) => String(r).slice(0, 160)),
       };
