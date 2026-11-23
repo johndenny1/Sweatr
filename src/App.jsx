@@ -9,12 +9,24 @@ import ParlayView from './components/ParlayView.jsx';
 import GameView from './components/GameView.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import Splash from './components/Splash.jsx';
+import Legal from './components/Legal.jsx';
+import AgeGate from './components/AgeGate.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
   const [splash, setSplash] = useState(true);
+  const [legal, setLegal] = useState(() => (['#privacy', '#terms'].includes(window.location.hash) ? window.location.hash.slice(1) : null));
+  useEffect(() => {
+    const onHash = () => setLegal(['#privacy', '#terms'].includes(window.location.hash) ? window.location.hash.slice(1) : null);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const closeLegal = () => {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    setLegal(null);
+  };
   const endSplash = useCallback(() => setSplash(false), []);
   // view: list | new | profile | { parlay } | { game }
   const [view, setView] = useState({ name: 'list' });
@@ -65,6 +77,7 @@ export default function App() {
 
   // The splash plays over whatever loads underneath, then fades into it.
   const splashLayer = splash ? <Splash onDone={endSplash} /> : null;
+  if (legal) return <div className="app"><Legal page={legal} onBack={closeLegal} /></div>;
   if (!ready) return splashLayer || <div className="boot-blank" />;
   if (!session)
     return (
@@ -74,6 +87,7 @@ export default function App() {
       </>
     );
 
+  if (user && !user.user_metadata?.age_confirmed_at) return <AgeGate onConfirmed={setUser} />;
   const showNav = view.name === 'list' || view.name === 'profile';
 
   return (

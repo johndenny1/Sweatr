@@ -6,6 +6,7 @@ import { fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
 import { uploadAvatar, removeAvatar } from '../lib/avatar.js';
 import { CameraIcon } from './Icons.jsx';
+import Footer from './Footer.jsx';
 
 function Stat({ label, value, tone }) {
   return (
@@ -72,6 +73,26 @@ export default function Profile({ user, onUserChange }) {
 
   const r = useMemo(() => computeRecord(parlays, statuses), [parlays, statuses]);
   const maxLeague = Math.max(1, ...r.leagues.map((l) => l.count));
+
+  const [deleting, setDeleting] = useState(false);
+  async function deleteAccount() {
+    const typed = window.prompt('This permanently deletes your account, slips and photo. Type DELETE to confirm.');
+    if (typed !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const res = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${data?.session?.access_token || ''}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || 'Could not delete account');
+      await supabase.auth.signOut();
+    } catch (err) {
+      window.alert(err.message);
+      setDeleting(false);
+    }
+  }
 
   async function saveName() {
     const clean = name.trim().slice(0, 24);
@@ -179,6 +200,10 @@ export default function Profile({ user, onUserChange }) {
       <button className="secondary" onClick={() => supabase.auth.signOut()}>
         Sign out
       </button>
+      <button className="link danger center" onClick={deleteAccount} disabled={deleting}>
+        {deleting ? 'Deleting…' : 'Delete account'}
+      </button>
+      <Footer />
     </div>
   );
 }

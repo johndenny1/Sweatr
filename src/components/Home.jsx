@@ -6,6 +6,7 @@ import { describeLeg } from '../lib/evaluate.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
 import { CameraIcon } from './Icons.jsx';
+import Footer from './Footer.jsx';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -223,6 +224,7 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
       {visible.map((p) => (
         <Ticket key={p.id} parlay={p} status={statusOf(p)} onOpen={() => onOpen(p.id)} />
       ))}
+      <Footer />
     </div>
   );
 }
