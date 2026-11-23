@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" style="background:#000">
+<html lang="en" class="booting" style="background:#000">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -33,16 +33,18 @@
 /* Splash: every animation here is opacity/transform only, so the phone's GPU runs it
    and it stays smooth even while the app's code is loading in the background. */
 html, body { margin: 0; background: #000; }
+/* The app stays hidden until the splash starts fading, so it can never flash through mid-animation */
+html.booting #root { visibility: hidden; }
 .splash {
   position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden;
-  background: #000; transition: opacity 320ms ease, transform 320ms ease; will-change: opacity, transform;
+  background: #000; transition: opacity 320ms ease;
 }
 .splash::before {
   content: ''; position: absolute; inset: 0;
   background: radial-gradient(ellipse 70% 45% at 50% 48%, #1d0f3a 0%, #0a0612 55%, #000 100%);
   animation: splash-fade 450ms ease-out both; will-change: opacity;
 }
-.splash.leaving { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.splash.leaving { opacity: 0; pointer-events: none; }
 
 .splash-glow {
   position: absolute; width: 520px; height: 520px; border-radius: 50%;
@@ -119,8 +121,9 @@ html, body { margin: 0; background: #000; }
         function finish() {
           if (gone) return;
           gone = true;
-          el.classList.add('leaving');
-          setTimeout(function () { el.remove(); }, 320);
+          document.documentElement.classList.remove('booting');
+          requestAnimationFrame(function () { el.classList.add('leaving'); });
+          setTimeout(function () { el.remove(); }, 380);
         }
         function check() {
           if (!appReady) return;
