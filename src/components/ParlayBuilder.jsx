@@ -87,6 +87,13 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
         <span>or build it yourself</span>
       </div>
 
+      <div className="manual-note">
+        <span className="vbadge off sm">Unverified</span>
+        <span>
+          Slips you build by hand are for tracking only and <b>don’t count toward your stats</b>. Scan your slip to get it verified.
+        </span>
+      </div>
+
       <div className="ticket ticket-builder">
         <div className="ticket-top">
           <input

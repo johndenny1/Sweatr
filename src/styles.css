@@ -835,3 +835,15 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 }
 .back-btn:active { transform: scale(0.95); }
 .back-chev { color: #c9a8ff; margin-right: -1px; }
+
+/* builder: manual slips note */
+.manual-note {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 18px;
+  background: rgba(154, 143, 176, 0.08); border: 1px solid var(--line);
+  color: var(--muted); font-size: 0.85rem; line-height: 1.4;
+}
+.manual-note b { color: var(--text); font-weight: 700; }
+.manual-note .vbadge { margin: 1px 0 0; flex: none; }
+
+/* keep the sticky header behind the status bar so the clock never overlaps the logo */
+.topbar { padding-top: calc(env(safe-area-inset-top) + 16px); margin-top: calc(-1 * env(safe-area-inset-top)); }
