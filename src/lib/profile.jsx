@@ -18,9 +18,10 @@ export function initials(name) {
 
 export function Avatar({ user, size = 40 }) {
   const name = displayName(user);
+  const src = user?.user_metadata?.avatar_url;
   return (
     <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.4 }}>
-      {initials(name)}
+      {src ? <img src={src} alt="" className="avatar-img" /> : initials(name)}
     </div>
   );
 }

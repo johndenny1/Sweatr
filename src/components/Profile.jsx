@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { refreshStatuses } from '../lib/settle.js';
 import { computeRecord } from '../lib/record.js';
 import { fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
+import { uploadAvatar, removeAvatar } from '../lib/avatar.js';
+import { CameraIcon } from './Icons.jsx';
 
 function Stat({ label, value, tone }) {
   return (
@@ -20,6 +22,36 @@ export default function Profile({ user, onUserChange }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(displayName(user));
   const [saving, setSaving] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoRef = useRef(null);
+
+  async function onPhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      onUserChange?.(await uploadAvatar(user, file));
+    } catch (err) {
+      setPhotoError(err.message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function onRemovePhoto() {
+    setPhotoBusy(true);
+    setPhotoError('');
+    try {
+      onUserChange?.(await removeAvatar(user));
+    } catch (err) {
+      setPhotoError(err.message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -54,7 +86,21 @@ export default function Profile({ user, onUserChange }) {
   return (
     <div className="stack profile">
       <div className="profile-head">
-        <Avatar user={user} size={84} />
+        <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPhoto} />
+        <button
+          className={`avatar-edit ${photoBusy ? 'busy' : ''}`}
+          onClick={() => !photoBusy && photoRef.current?.click()}
+          aria-label="Change profile picture"
+        >
+          <Avatar user={user} size={96} />
+          <span className="avatar-cam">{photoBusy ? <span className="spinner" /> : <CameraIcon width={16} height={16} />}</span>
+        </button>
+        {user?.user_metadata?.avatar_url && !photoBusy && (
+          <button className="link small" onClick={onRemovePhoto}>
+            Remove photo
+          </button>
+        )}
+        {photoError && <p className="error small">{photoError}</p>}
         {editing ? (
           <div className="row gap">
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={24} autoFocus />
