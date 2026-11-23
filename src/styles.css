@@ -359,3 +359,128 @@ button:disabled { opacity: 0.4; cursor: default; }
 .verify-line.off { color: var(--muted); }
 .verify-line.on { color: var(--text); }
 .verify-foot { margin: -4px 0 0; }
+
+/* =========================================================
+   Bubble + glow theme (overrides the squarer styles above)
+   ========================================================= */
+:root {
+  --r-card: 24px;
+  --r-btn: 999px;
+  --r-input: 16px;
+  --glow: 0 0 0 1px rgba(155, 92, 255, 0.35), 0 0 24px rgba(123, 47, 247, 0.35);
+  --glow-soft: 0 0 0 1px rgba(155, 92, 255, 0.18), 0 8px 30px rgba(123, 47, 247, 0.18);
+  --glow-strong: 0 0 0 1px rgba(183, 140, 255, 0.6), 0 0 18px rgba(155, 92, 255, 0.6), 0 0 48px rgba(123, 47, 247, 0.45);
+  --glow-green: 0 0 0 1px rgba(47, 227, 154, 0.45), 0 0 26px rgba(47, 227, 154, 0.28);
+  --glow-red: 0 0 0 1px rgba(255, 77, 109, 0.35), 0 0 22px rgba(255, 77, 109, 0.18);
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -5%, rgba(123, 47, 247, 0.28), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 100% 100%, rgba(123, 47, 247, 0.12), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* brand + header */
+.brand, .logo, .boot { text-shadow: 0 0 12px rgba(155, 92, 255, 0.85), 0 0 34px rgba(123, 47, 247, 0.55); }
+.topbar { border-bottom: 0; box-shadow: 0 1px 0 rgba(155, 92, 255, 0.35), 0 10px 30px -12px rgba(123, 47, 247, 0.6); background: rgba(0, 0, 0, 0.6); }
+
+/* cards */
+.card, .ticket, .stat-tile, .bank-card, .empty, .viewfinder, .linescore-wrap { border-radius: var(--r-card); }
+.card, .stat-tile { border-color: rgba(155, 92, 255, 0.18); box-shadow: var(--glow-soft); background: linear-gradient(180deg, rgba(30, 20, 50, 0.85), rgba(15, 11, 22, 0.92)); }
+.bank-card { box-shadow: var(--glow); border-color: rgba(155, 92, 255, 0.55); }
+.bank-net.pos { text-shadow: 0 0 20px rgba(47, 227, 154, 0.55); }
+.bank-net.neg { text-shadow: 0 0 20px rgba(255, 77, 109, 0.45); }
+.stat-value.pos { text-shadow: 0 0 14px rgba(47, 227, 154, 0.5); }
+
+/* buttons → pills */
+.primary, .secondary, .add-leg, .chip, .x-btn, .stamp, .pill, .vbadge, .league-tag, .streak, .vf-status, .edit { border-radius: var(--r-btn); }
+.primary {
+  background: linear-gradient(135deg, var(--accent-hi), var(--accent));
+  box-shadow: 0 0 0 1px rgba(183, 140, 255, 0.5), 0 6px 22px rgba(123, 47, 247, 0.55);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.primary:active { transform: scale(0.97); box-shadow: 0 0 0 1px rgba(183, 140, 255, 0.6), 0 0 30px rgba(155, 92, 255, 0.7); }
+.secondary { border-color: rgba(155, 92, 255, 0.4); background: rgba(123, 47, 247, 0.08); box-shadow: inset 0 0 14px rgba(123, 47, 247, 0.12); }
+.sticky-save .primary:disabled { background: rgba(123, 47, 247, 0.15); box-shadow: 0 0 0 1px rgba(155, 92, 255, 0.2); }
+.add-leg { box-shadow: inset 0 0 18px rgba(123, 47, 247, 0.12); }
+.x-btn { width: 30px; height: 30px; }
+
+/* inputs */
+input, select { border-radius: var(--r-input); border-color: rgba(155, 92, 255, 0.22); background: rgba(0, 0, 0, 0.45); transition: box-shadow 0.2s ease, border-color 0.2s ease; }
+input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.25), 0 0 18px rgba(155, 92, 255, 0.35); }
+.ticket-name-input { border-radius: 0; background: transparent; box-shadow: none !important; }
+
+/* chips / tabs */
+.chip { border-color: rgba(155, 92, 255, 0.25); padding: 9px 16px; }
+.chip.on { box-shadow: 0 0 16px rgba(123, 47, 247, 0.7); background: linear-gradient(135deg, var(--accent-hi), var(--accent)); }
+
+/* tickets */
+.ticket { padding: 18px 18px 16px 22px; border-color: rgba(155, 92, 255, 0.2); background: linear-gradient(180deg, rgba(28, 19, 46, 0.95), rgba(14, 10, 22, 0.95)); box-shadow: var(--glow-soft); }
+.ticket::before { width: 6px; left: 8px; top: 18px; bottom: 18px; border-radius: 999px; }
+.ticket-live::before { box-shadow: 0 0 12px var(--live); }
+.ticket-won::before { box-shadow: 0 0 12px var(--won); }
+.ticket-lost::before { box-shadow: 0 0 10px var(--lost); }
+.ticket-pending::before { box-shadow: 0 0 12px var(--accent); }
+.ticket-won { box-shadow: var(--glow-green); border-color: rgba(47, 227, 154, 0.35); }
+.ticket-live { box-shadow: var(--glow); border-color: rgba(183, 140, 255, 0.45); animation: live-glow 2.4s ease-in-out infinite; }
+.ticket-lost { box-shadow: var(--glow-red); }
+@keyframes live-glow { 50% { box-shadow: 0 0 0 1px rgba(183, 140, 255, 0.6), 0 0 34px rgba(155, 92, 255, 0.5); } }
+.perf { margin: 4px -18px 0 -22px; border-top-color: rgba(155, 92, 255, 0.25); }
+.perf::before, .perf::after { border-color: rgba(155, 92, 255, 0.25); width: 22px; height: 22px; top: -12px; }
+.perf::before { left: -11px; }
+.perf::after { right: -11px; }
+.leg-bullet { border-radius: 50%; transform: none; width: 9px; height: 9px; border: 0; background: var(--accent-hi); box-shadow: 0 0 8px var(--accent-hi); }
+
+/* stamps glow */
+.stamp { transform: none; border-width: 1.5px; padding: 5px 12px; }
+.stamp-won { box-shadow: 0 0 14px rgba(47, 227, 154, 0.55), inset 0 0 10px rgba(47, 227, 154, 0.2); text-shadow: 0 0 8px rgba(47, 227, 154, 0.7); }
+.stamp-lost { box-shadow: 0 0 12px rgba(255, 77, 109, 0.4), inset 0 0 8px rgba(255, 77, 109, 0.15); }
+.stamp-live { box-shadow: 0 0 14px rgba(183, 140, 255, 0.6), inset 0 0 10px rgba(183, 140, 255, 0.2); text-shadow: 0 0 8px rgba(183, 140, 255, 0.8); }
+.pill.status-won { box-shadow: 0 0 12px rgba(47, 227, 154, 0.35); }
+.pill.status-live { box-shadow: 0 0 12px rgba(183, 140, 255, 0.4); }
+.vbadge.on { box-shadow: 0 0 10px rgba(47, 227, 154, 0.35); }
+.dot { box-shadow: 0 0 10px var(--live); }
+
+/* form pips + bars */
+.form-pip { border-radius: 50%; }
+.form-pip.won { box-shadow: 0 0 10px rgba(47, 227, 154, 0.6); }
+.form-pip.lost { box-shadow: 0 0 8px rgba(255, 77, 109, 0.45); }
+.bar, .league-bar { border-radius: 999px; height: 10px; }
+.bar > div, .league-bar > div { border-radius: 999px; box-shadow: 0 0 10px rgba(155, 92, 255, 0.7); }
+.leg.status-won .bar > div { box-shadow: 0 0 10px rgba(47, 227, 154, 0.7); }
+
+/* avatar */
+.avatar { border-radius: 50%; box-shadow: 0 0 0 2px rgba(183, 140, 255, 0.6), 0 0 22px rgba(123, 47, 247, 0.65); }
+
+/* bottom nav: floating glass bubble */
+.bottom-nav { border-radius: 999px; border-color: rgba(155, 92, 255, 0.3); box-shadow: 0 0 0 1px rgba(155, 92, 255, 0.15), 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 30px rgba(123, 47, 247, 0.25); }
+.nav-item.on svg { filter: drop-shadow(0 0 6px rgba(155, 92, 255, 0.9)); }
+.nav-scan { border-radius: 50%; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.9), 0 0 24px rgba(155, 92, 255, 0.85), 0 0 60px rgba(123, 47, 247, 0.5); animation: scan-glow 2.6s ease-in-out infinite; }
+@keyframes scan-glow { 50% { box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.9), 0 0 34px rgba(183, 140, 255, 1), 0 0 80px rgba(123, 47, 247, 0.65); } }
+
+/* scanner bubble */
+.viewfinder { border-color: rgba(155, 92, 255, 0.3); box-shadow: inset 0 0 60px rgba(123, 47, 247, 0.18), var(--glow-soft); }
+.corner { border-width: 4px; filter: drop-shadow(0 0 6px rgba(155, 92, 255, 0.9)); }
+.corner.tl { border-top-left-radius: 18px; }
+.corner.tr { border-top-right-radius: 18px; }
+.corner.bl { border-bottom-left-radius: 18px; }
+.corner.br { border-bottom-right-radius: 18px; }
+.viewfinder.done .corner { filter: drop-shadow(0 0 8px rgba(47, 227, 154, 0.9)); }
+.vf-icon { border-radius: 50%; box-shadow: 0 0 30px rgba(123, 47, 247, 0.5); }
+.laser { border-radius: 999px; }
+.vf-img { border-radius: var(--r-card); }
+
+/* game view */
+.logo-img.placeholder { border-radius: 50%; }
+.play.scoring { border-left: 0; border-radius: 16px; margin: 6px 8px; box-shadow: inset 0 0 0 1px rgba(155, 92, 255, 0.35), 0 0 16px rgba(123, 47, 247, 0.25); }
+.base { border-radius: 4px; }
+.base.on { box-shadow: 0 0 10px var(--live); }
+.out.on { box-shadow: 0 0 8px var(--live); }
+.situation { box-shadow: var(--glow); }
+.situation.redzone { box-shadow: var(--glow-red); }
+.scores { text-shadow: 0 0 18px rgba(155, 92, 255, 0.45); }
+.skeleton { border-radius: var(--r-card); }
+
+.scroll-x { padding: 8px 6px; margin: -8px -6px; }
