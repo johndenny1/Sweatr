@@ -17,7 +17,8 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
 
 {
   "stake": number or null,          // amount wagered in dollars
-  "odds": string or null,           // total parlay odds in American format, e.g. "+650"
+  "odds": string or null,           // total parlay odds in American format, e.g. "+650", if shown
+  "payout": number or null,         // total return if it hits (e.g. "Max payout", "Potential payout", "To pay"), stake included
   "legs": [
     {
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
@@ -42,7 +43,8 @@ Rules:
 - For a game total, put both teams in team/opponent.
 - College games are "cfb" (football) or "cbb" (basketball).
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
-- If the image is not a bet slip, return {"stake": null, "odds": null, "legs": []}.`;
+- Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
+- If the image is not a bet slip, return {"stake": null, "odds": null, "payout": null, "legs": []}.`;
 }
 
 
@@ -78,7 +80,13 @@ export default async function handler(req, res) {
     }
 
     const stake = typeof parsed.stake === 'number' ? parsed.stake : null;
-    const odds = typeof parsed.odds === 'string' ? parsed.odds : null;
+    let odds = typeof parsed.odds === 'string' && /\d/.test(parsed.odds) ? parsed.odds : null;
+    // Slips that show cost + payout (Kalshi, etc.) instead of odds: work out the American odds.
+    const payout = typeof parsed.payout === 'number' ? parsed.payout : null;
+    if (!odds && stake > 0 && payout > stake) {
+      const dec = payout / stake;
+      odds = dec >= 2 ? `+${Math.round((dec - 1) * 100)}` : `-${Math.round(100 / (dec - 1))}`;
+    }
     const legs = Array.isArray(parsed.legs) ? parsed.legs : [];
 
     // Signed receipt of exactly what was read off the image. /api/save checks the
