@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="background:#000">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -14,8 +14,109 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;800&family=Bebas+Neue&family=Lilita+One&family=Bungee&display=swap" rel="stylesheet" />
     <title>Sweatr</title>
+    <style>
+html, body { margin: 0; background: #000; }
+.splash-word { width: min(68vw, 300px); height: auto; display: block; }
+.splash {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden;
+  background: #000;
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.splash::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 70% 45% at 50% 48%, #1d0f3a 0%, #0a0612 55%, #000 100%);
+  animation: splash-bg-in 450ms ease-out both;
+}
+@keyframes splash-bg-in { from { opacity: 0; } to { opacity: 1; } }
+.splash.leaving { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+.splash-glow {
+  position: absolute; width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(123, 47, 247, 0.45), transparent 62%);
+  animation: splash-glow-in 700ms ease-out both, splash-pulse 600ms ease-out 1150ms both;
+}
+.splash-stage { position: relative; display: flex; flex-direction: column; align-items: center; }
+.splash-word {
+  width: min(68vw, 300px); height: auto; display: block;
+  animation: splash-word-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both, splash-word-pop 420ms ease-out 1150ms both;
+}
+
+/* the drop: a teardrop that beads under the word, stretches, then falls */
+.splash-drop {
+  position: absolute; left: 50%; top: 92%; width: 18px; height: 18px; margin-left: -9px;
+  background: linear-gradient(180deg, #e2d0ff, #9b5cff);
+  border-radius: 0 50% 50% 50%; transform: rotate(45deg) scale(0); transform-origin: 50% 50%;
+  box-shadow: 0 0 14px rgba(155, 92, 255, 0.9);
+  animation: splash-drop 820ms cubic-bezier(0.5, 0, 0.75, 0) 380ms both;
+}
+.splash-ripple {
+  position: absolute; left: 50%; top: calc(92% + 96px); width: 22px; height: 7px; margin-left: -11px;
+  border: 2px solid rgba(183, 140, 255, 0.9); border-radius: 50%; opacity: 0;
+  animation: splash-ripple 650ms ease-out 1150ms forwards;
+}
+.splash-ripple.r2 { animation-delay: 1260ms; border-color: rgba(155, 92, 255, 0.6); }
+
+@keyframes splash-glow-in { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+@keyframes splash-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 0.85; } }
+@keyframes splash-word-in {
+  from { opacity: 0; transform: scale(0.9); filter: blur(10px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@keyframes splash-word-pop {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(155, 92, 255, 0)); }
+  35% { transform: scale(1.045); filter: drop-shadow(0 0 18px rgba(155, 92, 255, 0.9)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(155, 92, 255, 0.4)); }
+}
+@keyframes splash-drop {
+  0% { transform: translateY(0) rotate(45deg) scale(0); opacity: 1; }
+  45% { transform: translateY(2px) rotate(45deg) scale(1); }                 /* beads up */
+  60% { transform: translateY(8px) rotate(45deg) scale(1.05, 1.15); }        /* stretches */
+  97% { transform: translateY(96px) rotate(45deg) scale(0.9, 1.2); opacity: 1; } /* falls */
+  100% { transform: translateY(100px) rotate(45deg) scale(0); opacity: 0; }  /* splash */
+}
+@keyframes splash-ripple {
+  0% { opacity: 0.95; transform: scale(0.4); }
+  100% { opacity: 0; transform: scale(7, 4.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash::before, .splash-glow, .splash-word, .splash-drop, .splash-ripple { animation: none; }
+  .splash-drop, .splash-ripple { display: none; }
+}
+    </style>
   </head>
   <body style="background:#000">
+    <div id="boot-splash" class="splash" aria-hidden="true">
+      <div class="splash-glow"></div>
+      <div class="splash-stage">
+        <svg class="splash-word" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 538 128"><defs><filter id="halo" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="5"/></filter></defs><g filter="url(#halo)" opacity="0.7"><g transform="translate(9.97 112.61) scale(0.13908 -0.13908)" fill="#7b2ff7"><path transform="translate(0.0 0)" d="M76 244Q95 229 141.5 203.0Q188 177 230.5 177.0Q273 177 273 210Q273 225 261.0 236.5Q249 248 217.0 263.0Q185 278 169.0 286.5Q153 295 126.5 314.5Q100 334 86 355Q46 412 46.0 500.0Q46 588 111.5 648.5Q177 709 283 709Q355 709 416.0 693.5Q477 678 479 653Q479 650 479 647Q479 612 457.0 558.5Q435 505 426 499Q362 532 311.5 532.0Q261 532 261 496Q261 474 298 457Q306 453 321.0 446.0Q336 439 355.5 429.5Q375 420 397.5 405.5Q420 391 446 367Q499 317 499 235Q499 128 440.0 60.0Q381 -8 258 -10Q198 -10 149.5 0.0Q101 10 65.0 39.0Q29 68 29.0 109.0Q29 150 44.0 190.5Q59 231 76 244Z"/><path transform="translate(566.0 0)" d="M16.8 690Q14.4 701 97.60000000000001 701Q189.60000000000002 701 192.0 682L231.20000000000002 261L316.0 687Q320.0 702 378.4 702.0Q436.8 702 440.8 688L524.0 259L570.4 684Q572.0 695 607.2 699.0Q642.4000000000001 703 664.0 703Q748.0 703 745.6 689L648.8000000000001 26Q645.6 11 603.2 4.0Q560.8000000000001 -3 534.4 -3Q435.20000000000005 -3 430.40000000000003 25L376.0 300L316.8 26Q313.6 8 260.8 0Q233.60000000000002 -3 206.4 -3L155.20000000000002 0Q102.4 7 99.2 25Z"/><path transform="translate(1363.4 0)" d="M375 422Q394 422 394 352Q394 331 389.5 302.5Q385 274 373 274H246V174H430Q447 174 453 130Q456 111 456.0 89.5Q456 68 450.0 34.0Q444 0 430 0H88Q50 0 50 31V674Q50 700 73 700H431Q452 700 452.0 611.5Q452 523 431 523H246V422Z"/><path transform="translate(1891.4 0)" d="M520 -2Q433 -2 426 26L393 155H234L205 31Q199 0 109 0Q61 0 38.0 5.5Q15 11 15 14L192 691Q192 699 329.0 699.0Q466 699 466 691L639 13Q639 6 593.0 2.0Q547 -2 520 -2ZM259 282H364L319 489H313Z"/><path transform="translate(2581.4 0)" d="M351 16Q351 -4 252.0 -4.0Q153 -4 153 16V518H33Q16 518 9 564Q6 586 6.0 609.0Q6 632 9 654Q16 700 33 700H468Q485 700 492 654Q495 632 495.0 609.0Q495 586 492 564Q485 518 468 518H351Z"/><path transform="translate(3118.4 0)" d="M241 14Q241 -2 146 -2Q50 -2 50 13V665Q50 700 87 700H278Q541 700 541 495Q541 433 517.0 382.5Q493 332 449 302L575 92Q567 68 523 37Q463 -6 424.0 -6.0Q385 -6 366 22L272 241H241ZM241 523V373H246Q341 373 341 452Q341 488 322.5 505.5Q304 523 262 523Z"/></g></g><g transform="translate(9.97 112.61) scale(0.13908 -0.13908)" fill="#b388ff" stroke="#14081f" stroke-width="1.5" vector-effect="non-scaling-stroke" paint-order="stroke" stroke-linejoin="round"><path transform="translate(0.0 0)" d="M76 244Q95 229 141.5 203.0Q188 177 230.5 177.0Q273 177 273 210Q273 225 261.0 236.5Q249 248 217.0 263.0Q185 278 169.0 286.5Q153 295 126.5 314.5Q100 334 86 355Q46 412 46.0 500.0Q46 588 111.5 648.5Q177 709 283 709Q355 709 416.0 693.5Q477 678 479 653Q479 650 479 647Q479 612 457.0 558.5Q435 505 426 499Q362 532 311.5 532.0Q261 532 261 496Q261 474 298 457Q306 453 321.0 446.0Q336 439 355.5 429.5Q375 420 397.5 405.5Q420 391 446 367Q499 317 499 235Q499 128 440.0 60.0Q381 -8 258 -10Q198 -10 149.5 0.0Q101 10 65.0 39.0Q29 68 29.0 109.0Q29 150 44.0 190.5Q59 231 76 244Z"/><path transform="translate(566.0 0)" d="M16.8 690Q14.4 701 97.60000000000001 701Q189.60000000000002 701 192.0 682L231.20000000000002 261L316.0 687Q320.0 702 378.4 702.0Q436.8 702 440.8 688L524.0 259L570.4 684Q572.0 695 607.2 699.0Q642.4000000000001 703 664.0 703Q748.0 703 745.6 689L648.8000000000001 26Q645.6 11 603.2 4.0Q560.8000000000001 -3 534.4 -3Q435.20000000000005 -3 430.40000000000003 25L376.0 300L316.8 26Q313.6 8 260.8 0Q233.60000000000002 -3 206.4 -3L155.20000000000002 0Q102.4 7 99.2 25Z"/><path transform="translate(1363.4 0)" d="M375 422Q394 422 394 352Q394 331 389.5 302.5Q385 274 373 274H246V174H430Q447 174 453 130Q456 111 456.0 89.5Q456 68 450.0 34.0Q444 0 430 0H88Q50 0 50 31V674Q50 700 73 700H431Q452 700 452.0 611.5Q452 523 431 523H246V422Z"/><path transform="translate(1891.4 0)" d="M520 -2Q433 -2 426 26L393 155H234L205 31Q199 0 109 0Q61 0 38.0 5.5Q15 11 15 14L192 691Q192 699 329.0 699.0Q466 699 466 691L639 13Q639 6 593.0 2.0Q547 -2 520 -2ZM259 282H364L319 489H313Z"/><path transform="translate(2581.4 0)" d="M351 16Q351 -4 252.0 -4.0Q153 -4 153 16V518H33Q16 518 9 564Q6 586 6.0 609.0Q6 632 9 654Q16 700 33 700H468Q485 700 492 654Q495 632 495.0 609.0Q495 586 492 564Q485 518 468 518H351Z"/><path transform="translate(3118.4 0)" d="M241 14Q241 -2 146 -2Q50 -2 50 13V665Q50 700 87 700H278Q541 700 541 495Q541 433 517.0 382.5Q493 332 449 302L575 92Q567 68 523 37Q463 -6 424.0 -6.0Q385 -6 366 22L272 241H241ZM241 523V373H246Q341 373 341 452Q341 488 322.5 505.5Q304 523 262 523Z"/></g></svg>
+        <span class="splash-drop"></span>
+        <span class="splash-ripple r1"></span>
+        <span class="splash-ripple r2"></span>
+      </div>
+    </div>
+    <script>
+      // The splash is plain HTML so it's on screen from the first frame (no flash while the app loads).
+      // It leaves once the animation has played AND the app is ready underneath.
+      (function () {
+        var el = document.getElementById('boot-splash');
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var minMs = reduce ? 600 : 1800, start = Date.now(), appReady = false, gone = false;
+        function finish() {
+          if (gone) return;
+          gone = true;
+          el.classList.add('leaving');
+          setTimeout(function () { el.remove(); }, 320);
+        }
+        function check() {
+          if (!appReady) return;
+          var wait = minMs - 300 - (Date.now() - start);
+          if (wait > 0) setTimeout(finish, wait); else finish();
+        }
+        window.__sweatrReady = function () { if (!appReady) { appReady = true; check(); } };
+        setTimeout(finish, 8000); // never get stuck
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
