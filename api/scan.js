@@ -112,16 +112,21 @@ export default async function handler(req, res) {
 const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function geminiOnce(key, model, image, text) {
+async function geminiOnce(key, model, image, text, fast = true) {
+  const generationConfig = { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 2048 };
+  // Reading a slip doesn't need the model to "think" first; skipping it saves seconds.
+  if (fast) generationConfig.thinkingConfig = /2\.5/.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'minimal' };
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ inline_data: { mime_type: 'image/jpeg', data: image } }, { text }] }],
-      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+      generationConfig,
     }),
   });
   const data = await r.json().catch(() => ({}));
+  // Model doesn't support that thinking setting: retry once without it.
+  if (!r.ok && fast && r.status === 400 && /thinking/i.test(data?.error?.message || '')) return geminiOnce(key, model, image, text, false);
   if (!r.ok) return { status: r.status, error: data?.error?.message || `Gemini returned ${r.status}` };
   const parts = data?.candidates?.[0]?.content?.parts || [];
   return { text: parts.map((p) => p.text || '').join('') };
@@ -137,7 +142,7 @@ async function askGemini(key, image, text) {
       last = result;
       // Busy / rate-limited / server error → try again or move on. 404 = model name not available → move on.
       if (![429, 500, 502, 503, 504, 404].includes(result.status)) return { error: result.error };
-      if (attempt === 0 && i === 0) await sleep(1200);
+      if (attempt === 0 && i === 0) await sleep(600);
     }
   }
   return {

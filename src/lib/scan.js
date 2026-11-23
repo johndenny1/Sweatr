@@ -4,7 +4,7 @@ import { leagueById } from './stats.js';
 
 // ---------- 1. Shrink the screenshot so it uploads fast and fits Vercel's limit ----------
 
-export function imageToBase64(file, maxSide = 1600, quality = 0.85) {
+export function imageToBase64(file, maxSide = 1280, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -93,35 +93,31 @@ export async function resolveLegs(rawLegs) {
   const games = (league, date) => (gameCache[`${league}:${date}`] ??= getGames(league, date).catch(() => []));
   const roster = (league, team) => (rosterCache[`${league}:${team}`] ??= getRoster(league, team).catch(() => []));
 
-  const matched = [];
-  const unmatched = [];
+  // Every leg is matched at the same time, and each leg checks all candidate dates at once.
+  const results = await Promise.all(rawLegs.map((raw) => matchOne(raw)));
+  const matched = results.filter((r) => r.leg).map((r) => r.leg);
+  const unmatched = results.filter((r) => r.miss).map((r) => r.miss);
 
-  for (const raw of rawLegs) {
+  async function matchOne(raw) {
     const league = String(raw.league || '').toLowerCase();
     const label = raw.raw || [raw.player, raw.team, raw.stat, raw.line].filter(Boolean).join(' ');
-    if (!leagueById(league)) {
-      unmatched.push({ label, reason: 'Unknown league' });
-      continue;
-    }
+    if (!leagueById(league)) return { miss: { label, reason: 'Unknown league' } };
 
-    // Find the game: slip date if given, otherwise today and the next week.
     const start = /^\d{4}-\d{2}-\d{2}$/.test(raw.date || '') ? raw.date : todayISO();
-    const span = raw.date ? 1 : 8;
+    const dates = Array.from({ length: raw.date ? 1 : 8 }, (_, i) => addDays(start, i));
+    const slates = await Promise.all(dates.map((d) => games(league, d)));
     let game = null;
     let date = start;
-    for (let i = 0; i < span && !game; i++) {
-      date = addDays(start, i);
-      const slate = await games(league, date);
+    for (let i = 0; i < dates.length && !game; i++) {
+      const slate = slates[i];
       game =
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team)) &&
           (!raw.opponent || [g.home, g.away].some((t) => sameTeam(t, raw.opponent)))) ||
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team) || sameTeam(t, raw.opponent))) ||
         null;
+      if (game) date = dates[i];
     }
-    if (!game) {
-      unmatched.push({ label, reason: "Couldn't find the game" });
-      continue;
-    }
+    if (!game) return { miss: { label, reason: "Couldn't find the game" } };
 
     const base = {
       id: crypto.randomUUID(),
@@ -140,38 +136,31 @@ export async function resolveLegs(rawLegs) {
 
     if (raw.type === 'prop') {
       const stat = leagueById(league).stats.find((s) => s.id === raw.stat);
-      if (!stat) {
-        unmatched.push({ label, reason: 'Prop type not supported yet' });
-        continue;
-      }
+      if (!stat) return { miss: { label, reason: 'Prop type not supported yet' } };
+      const [awayRoster, homeRoster] = await Promise.all([roster(league, game.awayId), roster(league, game.homeId)]);
       const players = [
-        ...(await roster(league, game.awayId)).map((p) => ({ ...p, team: p.team || game.away })),
-        ...(await roster(league, game.homeId)).map((p) => ({ ...p, team: p.team || game.home })),
+        ...awayRoster.map((p) => ({ ...p, team: p.team || game.away })),
+        ...homeRoster.map((p) => ({ ...p, team: p.team || game.home })),
       ];
       const player = players.find((p) => sameName(p.name, raw.player));
-      if (!player) {
-        unmatched.push({ label, reason: `Couldn't find ${raw.player || 'the player'}` });
-        continue;
-      }
-      matched.push({
-        ...base,
-        type: 'prop',
-        playerId: player.id,
-        playerName: player.name,
-        team: player.team,
-        stat: stat.id,
-        side,
-        line: Number.isFinite(line) ? line : 0.5,
-      });
-    } else if (raw.type === 'total' && Number.isFinite(line)) {
-      matched.push({ ...base, type: 'total', side, line });
-    } else if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) {
-      matched.push({ ...base, type: 'spread', pick: pickTeam, line });
-    } else if (raw.type === 'moneyline' && pickTeam) {
-      matched.push({ ...base, type: 'moneyline', pick: pickTeam });
-    } else {
-      unmatched.push({ label, reason: 'Missing team or line' });
+      if (!player) return { miss: { label, reason: `Couldn't find ${raw.player || 'the player'}` } };
+      return {
+        leg: {
+          ...base,
+          type: 'prop',
+          playerId: player.id,
+          playerName: player.name,
+          team: player.team,
+          stat: stat.id,
+          side,
+          line: Number.isFinite(line) ? line : 0.5,
+        },
+      };
     }
+    if (raw.type === 'total' && Number.isFinite(line)) return { leg: { ...base, type: 'total', side, line } };
+    if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) return { leg: { ...base, type: 'spread', pick: pickTeam, line } };
+    if (raw.type === 'moneyline' && pickTeam) return { leg: { ...base, type: 'moneyline', pick: pickTeam } };
+    return { miss: { label, reason: 'Missing team or line' } };
   }
 
   return { matched, unmatched };
