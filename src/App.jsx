@@ -12,6 +12,7 @@ import Legal from './components/Legal.jsx';
 import AgeGate from './components/AgeGate.jsx';
 import Rooms from './components/Rooms.jsx';
 import Calendar from './components/Calendar.jsx';
+import VibeCheck from './components/VibeCheck.jsx';
 import RoomView from './components/RoomView.jsx';
 import { capturePendingJoin, takePendingJoin, joinRoom } from './lib/rooms.js';
 
@@ -48,7 +49,7 @@ export default function App() {
   }, []);
 
   // Page transitions: deeper pages slide in from the right, going back slides in from the left.
-  const BASE = { list: 0, rooms: 0, calendar: 0, profile: 0, new: 1, room: 1, parlay: 1, game: 2 };
+  const BASE = { list: 0, rooms: 0, calendar: 0, profile: 0, new: 1, check: 1, room: 1, parlay: 1, game: 2 };
   const depth = (v) => BASE[v.name] + (v.from ? 1 : 0);
   const TAB = { list: 0, rooms: 1, calendar: 2, profile: 3 };
   const [anim, setAnim] = useState({ key: 0, dir: 'none' });
@@ -71,7 +72,7 @@ export default function App() {
     if (v.name === 'game') return { name: 'parlay', id: v.parlayId, from: v.from };
     if (v.name === 'parlay' && v.from) return v.from;
     if (v.name === 'room') return { name: 'rooms' };
-    if (v.name === 'parlay' || v.name === 'new') return { name: 'list' };
+    if (v.name === 'parlay' || v.name === 'new' || v.name === 'check') return { name: 'list' };
     return null;
   }
   const pageRef = useRef(null);
@@ -176,8 +177,10 @@ export default function App() {
             onNew={() => go({ name: 'new' })}
             onOpen={(id) => go({ name: 'parlay', id })}
             onProfile={() => go({ name: 'profile' })}
+            onVibeCheck={() => go({ name: 'check' })}
           />
         )}
+        {view.name === 'check' && <VibeCheck onBack={() => go({ name: 'list' })} onTrackInstead={() => go({ name: 'new' })} />}
         {view.name === 'profile' && <Profile user={user} onUserChange={setUser} />}
         {view.name === 'calendar' && (
           <Calendar user={user} onOpen={(pid) => go({ name: 'parlay', id: pid, from: { name: 'calendar' } })} />
@@ -197,7 +200,11 @@ export default function App() {
           />
         )}
         {view.name === 'new' && (
-          <ParlayBuilder onCancel={() => go({ name: 'list' })} onSaved={(id) => go({ name: 'parlay', id })} />
+          <ParlayBuilder
+            onCancel={() => go({ name: 'list' })}
+            onSaved={(id) => go({ name: 'parlay', id })}
+            onVibeCheck={() => go({ name: 'check' })}
+          />
         )}
         {view.name === 'parlay' && (
           <ParlayView

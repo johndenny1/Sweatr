@@ -20,14 +20,17 @@ async function fetchScout(legs, odds, stake) {
 
 const STEPS = ['Pulling each player’s last 5 games', 'Checking injuries and news', 'Checking the weather', 'Writing your report'];
 
-// Full-screen "Scout report" for a slip before it's placed.
-export default function ScoutSheet({ legs, odds, stake, onClose }) {
+// The report itself: fetches and shows the scout for a list of legs.
+export function ScoutReport({ legs, odds, stake }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    setResult(null);
+    setError('');
+    setStep(0);
     const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 1600);
     fetchScout(legs, odds, stake)
       .then((r) => alive && setResult(r))
@@ -38,35 +41,13 @@ export default function ScoutSheet({ legs, odds, stake, onClose }) {
       clearInterval(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  }, [legs.map((l) => l.id || `${l.gameId}${l.playerId}${l.line}`).join('|'), odds]);
 
   const dec = americanToDecimal(odds);
   const report = result?.report;
   const data = result?.data;
 
-  return createPortal(
-    <div className="recap-sheet scout-sheet" role="dialog" aria-label="Scout report">
-      <div className="recap-top">
-        <button className="recap-x" onClick={onClose} aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
-        <div className="recap-title">
-          <div className="recap-kicker">Before you lock it in</div>
-          <h2>Scout Report</h2>
-        </div>
-        <span className="recap-x-spacer" />
-      </div>
-
+  return (
       <div className="scout-body">
         {!result && !error && (
           <div className="scout-loading">
@@ -201,6 +182,34 @@ export default function ScoutSheet({ legs, odds, stake, onClose }) {
           </>
         )}
       </div>
+  );
+}
+
+// Full-screen version (used from a saved slip that hasn't started yet).
+export default function ScoutSheet({ legs, odds, stake, onClose }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="recap-sheet scout-sheet" role="dialog" aria-label="Scout report">
+      <div className="recap-top">
+        <button className="recap-x" onClick={onClose} aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        <div className="recap-title">
+          <div className="recap-kicker">Before the games start</div>
+          <h2>Scout Report</h2>
+        </div>
+        <span className="recap-x-spacer" />
+      </div>
+      <ScoutReport legs={legs} odds={odds} stake={stake} />
     </div>,
     document.body
   );

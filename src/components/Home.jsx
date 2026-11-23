@@ -93,7 +93,7 @@ function Ticket({ parlay, status, onOpen }) {
   );
 }
 
-export default function Home({ user, onNew, onOpen, onProfile }) {
+export default function Home({ user, onNew, onOpen, onProfile, onVibeCheck }) {
   const [parlays, setParlays] = useState(null);
   const [statuses, setStatuses] = useState({});
   const [filter, setFilter] = useState('all');
@@ -191,6 +191,17 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
           </div>
         )}
       </div>
+
+      {onVibeCheck && (
+        <button className="vibe-card" onClick={onVibeCheck}>
+          <span className="vibe-card-icon">✨</span>
+          <span className="vibe-card-text">
+            <b>Vibe Check</b>
+            <span>Scan a parlay before you place it. Recent games, injuries, weather. Nothing saved.</span>
+          </span>
+          <span className="watch">›</span>
+        </button>
+      )}
 
       {record.unverified > 0 && (
         <p className="muted small verify-foot">
