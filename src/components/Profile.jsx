@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { refreshStatuses } from '../lib/settle.js';
+import { loadMyParlays } from '../lib/myParlays.js';
 import { computeRecord } from '../lib/record.js';
 import { fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
@@ -8,6 +9,7 @@ import { uploadAvatar, removeAvatar } from '../lib/avatar.js';
 import { CameraIcon } from './Icons.jsx';
 import Footer from './Footer.jsx';
 import AlertsCard from './AlertsCard.jsx';
+import FlexShare from './FlexShare.jsx';
 
 function Stat({ label, value, tone }) {
   return (
@@ -57,11 +59,7 @@ export default function Profile({ user, onUserChange }) {
 
   useEffect(() => {
     let alive = true;
-    supabase
-      .from('parlays')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(async ({ data }) => {
+    loadMyParlays(user.id).then(async ({ data }) => {
         if (!alive) return;
         setParlays(data || []);
         const s = await refreshStatuses(data || []);
@@ -70,7 +68,7 @@ export default function Profile({ user, onUserChange }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [user.id]);
 
   const r = useMemo(() => computeRecord(parlays, statuses), [parlays, statuses]);
   const maxLeague = Math.max(1, ...r.leagues.map((l) => l.count));
@@ -148,6 +146,8 @@ export default function Profile({ user, onUserChange }) {
           {fmtMoney(r.returned)} returned on {fmtMoney(r.staked)} wagered · verified slips only
         </div>
       </div>
+
+      <FlexShare user={user} record={r} parlays={parlays} statuses={statuses} />
 
       <div className="stat-grid">
         <Stat label="Record" value={`${r.wins}-${r.losses}`} />

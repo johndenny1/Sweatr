@@ -48,3 +48,17 @@ export const StatsIcon = (p) => (
     <path d="M4 20V11M10 20V5M16 20v-7M21 20H3" />
   </svg>
 );
+
+export const CalendarIcon = (p) => (
+  <svg {...base} {...p}>
+    <rect x="3.5" y="5" width="17" height="15.5" rx="3" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 17.2h.01M12 17.2h.01" strokeWidth="2.6" />
+  </svg>
+);
+
+export const ShareIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
+  </svg>
+);

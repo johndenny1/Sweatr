@@ -11,6 +11,7 @@ import BottomNav from './components/BottomNav.jsx';
 import Legal from './components/Legal.jsx';
 import AgeGate from './components/AgeGate.jsx';
 import Rooms from './components/Rooms.jsx';
+import Calendar from './components/Calendar.jsx';
 import RoomView from './components/RoomView.jsx';
 import { capturePendingJoin, takePendingJoin, joinRoom } from './lib/rooms.js';
 
@@ -47,9 +48,9 @@ export default function App() {
   }, []);
 
   // Page transitions: deeper pages slide in from the right, going back slides in from the left.
-  const BASE = { list: 0, rooms: 0, profile: 0, new: 1, room: 1, parlay: 1, game: 2 };
+  const BASE = { list: 0, rooms: 0, calendar: 0, profile: 0, new: 1, room: 1, parlay: 1, game: 2 };
   const depth = (v) => BASE[v.name] + (v.from ? 1 : 0);
-  const TAB = { list: 0, rooms: 1, profile: 2 };
+  const TAB = { list: 0, rooms: 1, calendar: 2, profile: 3 };
   const [anim, setAnim] = useState({ key: 0, dir: 'none' });
   const viewRef = useRef(view);
 
@@ -147,7 +148,7 @@ export default function App() {
     );
 
   if (user && !user.user_metadata?.age_confirmed_at) return <AgeGate onConfirmed={setUser} />;
-  const showNav = view.name === 'list' || view.name === 'profile' || view.name === 'rooms';
+  const showNav = ['list', 'profile', 'rooms', 'calendar'].includes(view.name);
 
   return (
     <>
@@ -178,6 +179,9 @@ export default function App() {
           />
         )}
         {view.name === 'profile' && <Profile user={user} onUserChange={setUser} />}
+        {view.name === 'calendar' && (
+          <Calendar user={user} onOpen={(pid) => go({ name: 'parlay', id: pid, from: { name: 'calendar' } })} />
+        )}
         {view.name === 'rooms' && (
           <>
             {joinError && <p className="error">{joinError}</p>}
@@ -199,7 +203,7 @@ export default function App() {
           <ParlayView
             id={view.id}
             userId={user.id}
-            backLabel={view.from ? 'Back to room' : 'All parlays'}
+            backLabel={view.from?.name === 'room' ? 'Back to room' : view.from?.name === 'calendar' ? 'Calendar' : 'All parlays'}
             onBack={() => go(view.from || { name: 'list' })}
             onOpenGame={(league, gameId, date, legs) =>
               go({ name: 'game', parlayId: view.id, from: view.from, league, gameId, date, legs })
@@ -218,10 +222,11 @@ export default function App() {
       </main>
       {showNav && (
         <BottomNav
-          active={view.name === 'rooms' ? 'rooms' : view.name === 'profile' ? 'profile' : 'home'}
+          active={view.name === 'list' ? 'home' : view.name}
           onHome={() => go({ name: 'list' })}
           onScan={() => go({ name: 'new' })}
           onRooms={() => go({ name: 'rooms' })}
+          onCalendar={() => go({ name: 'calendar' })}
           onProfile={() => go({ name: 'profile' })}
         />
       )}

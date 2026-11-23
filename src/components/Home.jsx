@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabase.js';
+import { loadMyParlays } from '../lib/myParlays.js';
+import FlexShare from './FlexShare.jsx';
 import { refreshStatuses } from '../lib/settle.js';
 import { computeRecord } from '../lib/record.js';
 import { describeLeg } from '../lib/evaluate.js';
@@ -100,11 +101,7 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
 
   useEffect(() => {
     let alive = true;
-    supabase
-      .from('parlays')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(async ({ data, error }) => {
+    loadMyParlays(user.id).then(async ({ data, error }) => {
         if (!alive) return;
         if (error) setError(error.message);
         const list = data || [];
@@ -115,7 +112,7 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [user.id]);
 
   const record = useMemo(() => computeRecord(parlays || [], statuses), [parlays, statuses]);
   const statusOf = (p) => statuses[p.id] || p.status || 'pending';
@@ -154,7 +151,10 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
       </div>
 
       <div className="bank-card">
-        <div className="bank-label">Net profit</div>
+        <div className="row between">
+          <div className="bank-label">Net profit</div>
+          <FlexShare compact user={user} record={record} parlays={parlays} statuses={statuses} />
+        </div>
         <div className={`bank-net ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}`}>{fmtMoney(net, { sign: true })}</div>
         <div className="bank-row">
           <div>

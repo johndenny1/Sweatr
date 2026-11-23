@@ -374,3 +374,5 @@ export async function drawRecap(parlay, rows, overall) {
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
 }
+
+export { rr, wrap, fitText, loadImage, C, BLOCK, BODY, W, H };
