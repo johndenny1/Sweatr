@@ -82,7 +82,6 @@ export default function Rooms({ user, onOpen }) {
       {rooms === null && <p className="muted">Loading…</p>}
       {rooms?.length === 0 && !error && (
         <div className="card empty-rooms">
-          <div className="empty-emoji">💦</div>
           <div>No rooms yet. Start one and send the link to the group chat.</div>
         </div>
       )}

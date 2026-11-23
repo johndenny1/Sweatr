@@ -42,3 +42,9 @@ export const RoomsIcon = (p) => (
     <path d="M15.5 14.6c2.6-.4 4.8 1.2 5.8 4.4" />
   </svg>
 );
+
+export const StatsIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 20V11M10 20V5M16 20v-7M21 20H3" />
+  </svg>
+);

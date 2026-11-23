@@ -189,6 +189,7 @@ export default function App() {
           onHome={() => go({ name: 'list' })}
           onScan={() => go({ name: 'new' })}
           onRooms={() => go({ name: 'rooms' })}
+          onProfile={() => go({ name: 'profile' })}
         />
       )}
     </div>
