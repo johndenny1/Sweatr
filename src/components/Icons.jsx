@@ -33,3 +33,12 @@ export const BoltIcon = (p) => (
     <path d="M13 2 4 14h7l-1 8 9-12h-7z" />
   </svg>
 );
+
+export const RoomsIcon = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <circle cx="17" cy="9.5" r="2.4" />
+    <path d="M2.5 20c1-3.6 3.6-5.5 6.5-5.5s5.5 1.9 6.5 5.5" />
+    <path d="M15.5 14.6c2.6-.4 4.8 1.2 5.8 4.4" />
+  </svg>
+);

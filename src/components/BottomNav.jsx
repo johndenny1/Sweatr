@@ -1,6 +1,6 @@
-import { HomeIcon, CameraIcon, UserIcon } from './Icons.jsx';
+import { HomeIcon, CameraIcon, RoomsIcon } from './Icons.jsx';
 
-export default function BottomNav({ active, onHome, onScan, onProfile }) {
+export default function BottomNav({ active, onHome, onScan, onRooms }) {
   return (
     <nav className="bottom-nav">
       <button className={`nav-item ${active === 'home' ? 'on' : ''}`} onClick={onHome}>
@@ -10,9 +10,9 @@ export default function BottomNav({ active, onHome, onScan, onProfile }) {
       <button className="nav-scan" onClick={onScan} aria-label="Scan a bet slip">
         <CameraIcon width={30} height={30} />
       </button>
-      <button className={`nav-item ${active === 'profile' ? 'on' : ''}`} onClick={onProfile}>
-        <UserIcon />
-        <span>Profile</span>
+      <button className={`nav-item ${active === 'rooms' ? 'on' : ''}`} onClick={onRooms}>
+        <RoomsIcon />
+        <span>Rooms</span>
       </button>
     </nav>
   );

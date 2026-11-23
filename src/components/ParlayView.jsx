@@ -9,7 +9,7 @@ import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 const REFRESH_MS = 30_000;
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
 
-export default function ParlayView({ id, onBack, onOpenGame }) {
+export default function ParlayView({ id, userId, backLabel = 'All parlays', onBack, onOpenGame }) {
   const [parlay, setParlay] = useState(null);
   const [boxes, setBoxes] = useState({}); // key `${league}:${gameId}` → { game, players }
   const [updated, setUpdated] = useState(null);
@@ -64,8 +64,9 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
   // Save the result once the parlay is decided so it counts toward winnings.
   const decided = parlay && legResults.length ? parlayStatus(legResults.map((r) => r.result)) : null;
   useEffect(() => {
-    if (parlay && (decided === 'won' || decided === 'lost') && Object.keys(boxes).length) saveResult(parlay, decided);
-  }, [parlay, decided, boxes]);
+    if (parlay && parlay.user_id === userId && (decided === 'won' || decided === 'lost') && Object.keys(boxes).length)
+      saveResult(parlay, decided);
+  }, [parlay, decided, boxes, userId]);
 
   async function remove() {
     if (!window.confirm('Delete this parlay?')) return;
@@ -90,7 +91,7 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
   return (
     <div className="stack">
       <button className="link" onClick={onBack}>
-        ← All parlays
+        ← {backLabel}
       </button>
 
       <div className={`card hero status-${overall}`}>
@@ -185,7 +186,9 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
         {allFinal ? 'All games final' : `Auto-refreshes every ${REFRESH_MS / 1000}s`}
         {updated ? ` · updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
       </p>
-      {parlay.verified ? (
+      {parlay.user_id !== userId ? (
+        <p className="muted small center">Shared in your room · read only</p>
+      ) : parlay.verified ? (
         <p className="muted small center">Verified slips stay on your record and can't be deleted.</p>
       ) : (
         <button className="link danger center" onClick={remove}>
