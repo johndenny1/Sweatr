@@ -39,6 +39,8 @@ function normalizeCompetition(id, comp, start) {
     away: away.team?.abbreviation,
     homeId: home.team?.id ? String(home.team.id) : null,
     awayId: away.team?.id ? String(away.team.id) : null,
+    homeNames: [home.team?.displayName, home.team?.shortDisplayName, home.team?.name, home.team?.location].filter(Boolean),
+    awayNames: [away.team?.displayName, away.team?.shortDisplayName, away.team?.name, away.team?.location].filter(Boolean),
     homeScore: type.state === 'pre' ? null : score(home),
     awayScore: type.state === 'pre' ? null : score(away),
     start: start || comp.date || null,

@@ -93,12 +93,49 @@ export async function resolveLegs(rawLegs) {
   const games = (league, date) => (gameCache[`${league}:${date}`] ??= getGames(league, date).catch(() => []));
   const roster = (league, team) => (rosterCache[`${league}:${team}`] ??= getRoster(league, team).catch(() => []));
 
+  // How many of a game's two teams are named in a matchup line like "MIL Bucks vs TOR Raptors".
+  function matchupHits(g, matchup) {
+    if (!matchup) return 0;
+    const parts = String(matchup).split(/\s+(?:vs\.?|v\.?|@|at)\s+/i);
+    const sideHit = (abbr, names) => parts.some((p) => sameTeam(abbr, p.split(/\s+/)[0]) || names.some((n) => norm(p).includes(norm(n)) || norm(n).includes(norm(p))));
+    return (sideHit(g.home, g.homeNames || []) ? 1 : 0) + (sideHit(g.away, g.awayNames || []) ? 1 : 0);
+  }
+
+  // Look for a player in the preferred games first, then every game on each candidate date.
+  async function findPlayer(league, name, preferred, slates, dates) {
+    const search = async (gamesList, date) => {
+      const rosters = await Promise.all(
+        gamesList.map(async (g) => {
+          const [a, h] = await Promise.all([roster(league, g.awayId), roster(league, g.homeId)]);
+          return { g, players: [...a.map((p) => ({ ...p, team: p.team || g.away })), ...h.map((p) => ({ ...p, team: p.team || g.home }))] };
+        })
+      );
+      for (const r of rosters) {
+        const player = r.players.find((p) => sameName(p.name, name));
+        if (player) return { game: r.g, player, date };
+      }
+      return null;
+    };
+    for (const g of preferred) {
+      const i = slates.findIndex((sl) => sl.includes(g));
+      const hit = await search([g], dates[Math.max(i, 0)]);
+      if (hit) return hit;
+    }
+    for (let i = 0; i < slates.length; i++) {
+      if (!slates[i].length) continue;
+      const hit = await search(slates[i], dates[i]);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
   // Every leg is matched at the same time, and each leg checks all candidate dates at once.
   const results = await Promise.all(rawLegs.map((raw) => matchOne(raw)));
   const matched = results.filter((r) => r.leg).map((r) => r.leg);
   const unmatched = results.filter((r) => r.miss).map((r) => r.miss);
 
-  async function matchOne(raw) {
+  async function matchOne(rawIn) {
+    let raw = rawIn;
     const league = String(raw.league || '').toLowerCase();
     const label = raw.raw || [raw.player, raw.team, raw.stat, raw.line].filter(Boolean).join(' ');
     if (!leagueById(league)) return { miss: { label, reason: 'Unknown league' } };
@@ -111,11 +148,25 @@ export async function resolveLegs(rawLegs) {
     for (let i = 0; i < dates.length && !game; i++) {
       const slate = slates[i];
       game =
+        slate.find((g) => matchupHits(g, raw.matchup) === 2) ||
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team)) &&
           (!raw.opponent || [g.home, g.away].some((t) => sameTeam(t, raw.opponent)))) ||
+        slate.find((g) => matchupHits(g, raw.matchup) === 1) ||
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team) || sameTeam(t, raw.opponent))) ||
         null;
       if (game) date = dates[i];
+    }
+
+    // Props: find the player in that game, or anywhere on the slate (teams on slips can be missing or wrong).
+    if (raw.type === 'prop') {
+      const found = await findPlayer(league, raw.player, game ? [game] : [], slates, dates);
+      if (found) {
+        game = found.game;
+        date = found.date;
+        raw = { ...raw, _player: found.player };
+      } else if (!game) {
+        return { miss: { label, reason: `Couldn't find ${raw.player || 'the player'} in any game` } };
+      }
     }
     if (!game) return { miss: { label, reason: "Couldn't find the game" } };
 
@@ -137,12 +188,7 @@ export async function resolveLegs(rawLegs) {
     if (raw.type === 'prop') {
       const stat = leagueById(league).stats.find((s) => s.id === raw.stat);
       if (!stat) return { miss: { label, reason: 'Prop type not supported yet' } };
-      const [awayRoster, homeRoster] = await Promise.all([roster(league, game.awayId), roster(league, game.homeId)]);
-      const players = [
-        ...awayRoster.map((p) => ({ ...p, team: p.team || game.away })),
-        ...homeRoster.map((p) => ({ ...p, team: p.team || game.home })),
-      ];
-      const player = players.find((p) => sameName(p.name, raw.player));
+      const player = raw._player;
       if (!player) return { miss: { label, reason: `Couldn't find ${raw.player || 'the player'}` } };
       return {
         leg: {

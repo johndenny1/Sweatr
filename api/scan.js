@@ -24,7 +24,8 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
       "type": "prop" | "moneyline" | "spread" | "total",
       "player": string or null,     // full player name for props
-      "team": string or null,       // standard abbreviation: the player's team (prop) or the picked team (moneyline/spread), e.g. "BOS", "KC", "LAD", "DUKE" (ESPN-style abbreviations)
+      "matchup": string or null,    // the game this leg is listed under, exactly as printed (e.g. "MIL Bucks vs TOR Raptors")
+      "team": string or null,       // abbreviation of the player's team (prop) or the picked team (moneyline/spread), ONLY if printed on the slip; never guess from memory
       "opponent": string or null,   // abbreviation of the other team if shown
       "stat": string or null,       // for props, one of the ids below
       "side": "over" | "under" | null,
@@ -42,6 +43,7 @@ Rules:
 - "Anytime touchdown scorer" is stat "anytd", side "over", line 0.5.
 - For a game total, put both teams in team/opponent.
 - College games are "cfb" (football) or "cbb" (basketball).
+- Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
 - If the image is not a bet slip, return {"stake": null, "odds": null, "payout": null, "legs": []}.`;
