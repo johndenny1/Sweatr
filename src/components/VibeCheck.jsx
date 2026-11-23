@@ -3,7 +3,7 @@ import Scanner from './Scanner.jsx';
 import { ScoutReport } from './ScoutSheet.jsx';
 import { describeLeg } from '../lib/evaluate.js';
 
-// Vibe Check: scan a slip you HAVEN'T placed yet and get the scout report.
+// Sweat Check: scan a slip you HAVEN'T placed yet and get the scout report.
 // Nothing is saved, verified or counted toward your record.
 export default function VibeCheck({ onBack, onTrackInstead }) {
   const [legs, setLegs] = useState([]);
@@ -33,7 +33,7 @@ export default function VibeCheck({ onBack, onTrackInstead }) {
 
       <div className="rooms-hero">
         <div className="rooms-kicker">Before you place it</div>
-        <h1>Vibe Check</h1>
+        <h1>Sweat Check</h1>
         <p className="muted">
           Building a parlay on Kalshi, DraftKings or anywhere else? Screenshot it before you place it and we’ll scout every leg.
           Nothing gets saved or counted toward your record.

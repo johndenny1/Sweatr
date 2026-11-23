@@ -85,7 +85,7 @@ export default function ParlayBuilder({ onCancel, onSaved, onVibeCheck }) {
         <button className="vibe-link" onClick={onVibeCheck}>
           <span>✨</span>
           <span>
-            <b>Haven’t placed it yet?</b> Vibe check it first. Nothing gets saved.
+            <b>Haven’t placed it yet?</b> Sweat check it first. Nothing gets saved.
           </span>
           <span className="watch">›</span>
         </button>

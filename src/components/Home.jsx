@@ -196,7 +196,7 @@ export default function Home({ user, onNew, onOpen, onProfile, onVibeCheck }) {
         <button className="vibe-card" onClick={onVibeCheck}>
           <span className="vibe-card-icon">✨</span>
           <span className="vibe-card-text">
-            <b>Vibe Check</b>
+            <b>Sweat Check</b>
             <span>Scan a parlay before you place it. Recent games, injuries, weather. Nothing saved.</span>
           </span>
           <span className="watch">›</span>
