@@ -104,6 +104,33 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, ageOk]);
 
+  // Tapping an alert opens its slip (#slip/ID), whether the app was closed or already open.
+  useEffect(() => {
+    if (!user || !ageOk) return;
+    const openFromHash = () => {
+      const m = window.location.hash.match(/^#slip\/([0-9a-f-]{36})$/i);
+      if (!m) return;
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      go({ name: 'parlay', id: m[1] });
+    };
+    const onMessage = (e) => {
+      if (e.data?.type !== 'open') return;
+      const u = new URL(e.data.url, window.location.origin);
+      if (u.hash) {
+        history.replaceState(null, '', u.pathname + u.hash);
+        openFromHash();
+      }
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => {
+      window.removeEventListener('hashchange', openFromHash);
+      navigator.serviceWorker?.removeEventListener('message', onMessage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, ageOk]);
+
   // The splash is static HTML in index.html; tell it once the first real screen is ready.
   useEffect(() => {
     if (ready || legal) requestAnimationFrame(() => window.__sweatrReady?.());

@@ -7,6 +7,7 @@ import { Avatar, displayName } from '../lib/profile.jsx';
 import { uploadAvatar, removeAvatar } from '../lib/avatar.js';
 import { CameraIcon } from './Icons.jsx';
 import Footer from './Footer.jsx';
+import AlertsCard from './AlertsCard.jsx';
 
 function Stat({ label, value, tone }) {
   return (
@@ -196,6 +197,8 @@ export default function Profile({ user, onUserChange }) {
           <p className="muted small">No legs yet.</p>
         )}
       </div>
+
+      <AlertsCard />
 
       <button className="secondary" onClick={() => supabase.auth.signOut()}>
         Sign out
