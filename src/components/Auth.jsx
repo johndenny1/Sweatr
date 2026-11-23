@@ -21,6 +21,7 @@ export default function Auth() {
 
   return (
     <div className="auth">
+      <img src="/icon.svg" alt="" className="auth-icon" />
       <h1 className="logo">Sweatr</h1>
       <p className="muted">Follow every leg of your parlay live.</p>
       <form onSubmit={submit} className="card stack">

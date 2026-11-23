@@ -42,6 +42,7 @@ export default function App() {
     <div className={`app ${showNav ? 'with-nav' : ''}`}>
       <header className="topbar">
         <button className="brand" onClick={() => go({ name: 'list' })}>
+          <img src="/icon.svg" alt="" className="brand-icon" />
           Sweatr
         </button>
       </header>
