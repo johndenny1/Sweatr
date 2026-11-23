@@ -6,6 +6,7 @@ import { requireUser } from './_auth.js';
 import { admin, hasAdmin, sign, sha256 } from './_admin.js';
 import { legFingerprint } from '../src/lib/fingerprint.js';
 import { dedupeLegs } from './_dedupe.js';
+import { parseSlipReply } from './_parseSlip.js';
 import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
 const STAT_IDS = `
@@ -17,7 +18,7 @@ function prompt(today, count = 1) {
   const intro =
     count > 1
       ? `These ${count} screenshots are all of the SAME sports betting slip (parlay), in order, taken while scrolling because it was too long for one screen. They usually overlap: the bottom of one screenshot shows the same legs as the top of the next. Today is ${today}.
-Combine them into ONE slip. List every leg exactly ONCE, in slip order, even if it shows up in two screenshots. If a leg is cut off at the edge of one screenshot but complete in another, use the complete one. The stake, odds and payout may only appear in one of the screenshots.`
+Combine them into ONE slip and return ONE JSON object (not one per screenshot). List every leg exactly ONCE, in slip order, even if it shows up in two screenshots. If a leg is cut off at the edge of one screenshot but complete in another, use the complete one. The stake, odds and payout may only appear in one of the screenshots.`
       : `This is a screenshot of a sports betting slip (parlay). Today is ${today}.`;
   return `${intro}
 Read every leg and return ONLY a JSON object, no other text, in this shape:
@@ -84,12 +85,10 @@ export default async function handler(req, res) {
     if (result.error) return res.status(502).json({ error: result.error });
 
     const text = result.text;
-    const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
-    let parsed;
-    try {
-      parsed = JSON.parse(json);
-    } catch {
-      return res.status(502).json({ error: "Couldn't read that slip. Try a clearer screenshot." });
+    const parsed = parseSlipReply(text);
+    if (!parsed) {
+      console.error('scan: unreadable reply', String(text).slice(0, 500));
+      return res.status(502).json({ error: "Couldn't read that slip. Try again, or one screenshot at a time." });
     }
 
     const stake = typeof parsed.stake === 'number' ? parsed.stake : null;
@@ -132,7 +131,7 @@ const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'ge
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function geminiOnce(key, model, images, text, fast = true) {
-  const generationConfig = { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 4096 };
+  const generationConfig = { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 8192 };
   // Reading a slip doesn't need the model to "think" first; skipping it saves seconds.
   if (fast) generationConfig.thinkingConfig = /2\.5/.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'minimal' };
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -179,7 +178,7 @@ async function askClaude(key, images, text) {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
-      max_tokens: 4000,
+      max_tokens: 8000,
       messages: [
         {
           role: 'user',
