@@ -13,8 +13,8 @@ const C = {
   muted: '#a99fc0',
   purple: '#9b5cff',
   purpleHi: '#b388ff',
-  won: '#10b981',
-  lost: '#ef4444',
+  won: '#2fe39a',
+  lost: '#ff4d6d',
 };
 const BLOCK = '"Archivo Black", "Archivo", system-ui, sans-serif';
 const BODY = '"Archivo", system-ui, sans-serif';
@@ -154,7 +154,7 @@ export async function drawRecap(parlay, rows, overall) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
   g = ctx.createRadialGradient(W / 2, H - 200, 20, W / 2, H - 200, 700);
-  g.addColorStop(0, story.tone === 'won' ? 'rgba(16,185,129,0.22)' : story.tone === 'lost' ? 'rgba(220,38,38,0.2)' : 'rgba(123,47,247,0.2)');
+  g.addColorStop(0, story.tone === 'won' ? 'rgba(47,227,154,0.22)' : story.tone === 'lost' ? 'rgba(255,77,109,0.2)' : 'rgba(123,47,247,0.2)');
   g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
@@ -246,7 +246,7 @@ export async function drawRecap(parlay, rows, overall) {
   ctx.save();
   ctx.font = `${hs}px ${BLOCK}`;
   ctx.fillStyle = story.tone === 'won' ? C.won : C.text;
-  ctx.shadowColor = story.tone === 'won' ? 'rgba(16,185,129,0.6)' : 'rgba(155,92,255,0.5)';
+  ctx.shadowColor = story.tone === 'won' ? 'rgba(47,227,154,0.6)' : 'rgba(155,92,255,0.5)';
   ctx.shadowBlur = 36;
   ctx.fillText(story.headline, W / 2, y + hs / 2);
   ctx.restore();
@@ -300,7 +300,7 @@ export async function drawRecap(parlay, rows, overall) {
     const ph = compact ? 52 : 58;
     const py = ly + (compact ? 22 : 40);
     rr(ctx, cardW - pad - pw, py, pw, ph, ph / 2);
-    ctx.fillStyle = sc === C.muted ? 'rgba(169,159,192,0.15)' : sc === C.won ? 'rgba(16,185,129,0.18)' : sc === C.lost ? 'rgba(239,68,68,0.18)' : 'rgba(179,136,255,0.18)';
+    ctx.fillStyle = sc === C.muted ? 'rgba(169,159,192,0.15)' : sc === C.won ? 'rgba(47,227,154,0.18)' : sc === C.lost ? 'rgba(255,77,109,0.18)' : 'rgba(179,136,255,0.18)';
     ctx.fill();
     ctx.fillStyle = sc;
     ctx.textBaseline = 'middle';
@@ -361,7 +361,7 @@ export async function drawRecap(parlay, rows, overall) {
     const t = '✓ VERIFIED SLIP';
     const tw = ctx.measureText(t).width + 60;
     rr(ctx, (W - tw) / 2, H - 200, tw, 66, 33);
-    ctx.fillStyle = 'rgba(16,185,129,0.16)';
+    ctx.fillStyle = 'rgba(47,227,154,0.16)';
     ctx.fill();
     ctx.fillStyle = C.won;
     ctx.textBaseline = 'middle';
