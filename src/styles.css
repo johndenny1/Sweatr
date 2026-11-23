@@ -7,7 +7,7 @@
   --accent: #7b2ff7;
   --accent-hi: #9b5cff;
   --live: #b78cff;
-  --won: #10b981;
+  --won: #059669;
   --lost: #ff4d6d;
   --push: #9a8fb0;
   --block: 'Archivo Black', 'Archivo', -apple-system, sans-serif;
@@ -78,7 +78,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 .pill { font-size: 0.72rem; font-family: var(--block); font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 3px; white-space: nowrap; background: var(--line); color: var(--muted); }
 .pill.status-live { background: rgba(183, 140, 255, 0.15); color: var(--live); }
-.pill.status-won { background: rgba(16, 185, 129, 0.15); color: var(--won); }
+.pill.status-won { background: rgba(5, 150, 105, 0.15); color: var(--won); }
 .pill.status-lost { background: rgba(255, 77, 94, 0.15); color: var(--lost); }
 
 .bar { height: 8px; background: var(--line); border-radius: 2px; overflow: hidden; }
@@ -189,7 +189,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .form-pip.lost { background: var(--lost); color: #1a0308; }
 .form-strip.big .form-pip { width: 28px; height: 28px; font-size: 0.8rem; }
 .streak { margin-left: 8px; font-family: var(--block); text-transform: uppercase; font-size: 0.72rem; padding: 4px 8px; border-radius: 3px; }
-.streak.won { background: rgba(16, 185, 129, 0.15); color: var(--won); }
+.streak.won { background: rgba(5, 150, 105, 0.15); color: var(--won); }
 .streak.lost { background: rgba(255, 77, 109, 0.15); color: var(--lost); }
 
 /* filter chips */
@@ -216,7 +216,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .ticket-won::before { background: var(--won); }
 .ticket-lost::before { background: var(--lost); }
 .ticket-pending::before { background: var(--accent); }
-.ticket-won { box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 0 24px rgba(16, 185, 129, 0.08); }
+.ticket-won { box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.25), 0 0 24px rgba(5, 150, 105, 0.08); }
 .ticket-live { box-shadow: 0 0 0 1px rgba(183, 140, 255, 0.35); }
 .ticket-lost { opacity: 0.78; }
 .ticket-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -351,7 +351,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- verification ---------- */
 .vbadge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--block); text-transform: uppercase; font-size: 0.62rem; letter-spacing: 0.05em; padding: 3px 7px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
-.vbadge.on { background: rgba(16, 185, 129, 0.15); color: var(--won); border: 1px solid rgba(16, 185, 129, 0.4); }
+.vbadge.on { background: rgba(5, 150, 105, 0.15); color: var(--won); border: 1px solid rgba(5, 150, 105, 0.4); }
 .vbadge.off { background: rgba(154, 143, 176, 0.12); color: var(--muted); border: 1px solid var(--line); }
 .vbadge.sm { font-size: 0.58rem; padding: 2px 5px; }
 .verify-line { font-size: 0.8rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -370,7 +370,7 @@ button:disabled { opacity: 0.4; cursor: default; }
   --glow: 0 0 0 1px rgba(155, 92, 255, 0.35), 0 0 24px rgba(123, 47, 247, 0.35);
   --glow-soft: 0 0 0 1px rgba(155, 92, 255, 0.18), 0 8px 30px rgba(123, 47, 247, 0.18);
   --glow-strong: 0 0 0 1px rgba(183, 140, 255, 0.6), 0 0 18px rgba(155, 92, 255, 0.6), 0 0 48px rgba(123, 47, 247, 0.45);
-  --glow-green: 0 0 0 1px rgba(16, 185, 129, 0.45), 0 0 26px rgba(16, 185, 129, 0.28);
+  --glow-green: 0 0 0 1px rgba(5, 150, 105, 0.45), 0 0 26px rgba(5, 150, 105, 0.28);
   --glow-red: 0 0 0 1px rgba(255, 77, 109, 0.35), 0 0 22px rgba(255, 77, 109, 0.18);
 }
 
@@ -390,9 +390,9 @@ body {
 .card, .ticket, .stat-tile, .bank-card, .empty, .viewfinder, .linescore-wrap { border-radius: var(--r-card); }
 .card, .stat-tile { border-color: rgba(155, 92, 255, 0.18); box-shadow: var(--glow-soft); background: linear-gradient(180deg, rgba(30, 20, 50, 0.85), rgba(15, 11, 22, 0.92)); }
 .bank-card { box-shadow: var(--glow); border-color: rgba(155, 92, 255, 0.55); }
-.bank-net.pos { text-shadow: 0 0 20px rgba(16, 185, 129, 0.55); }
+.bank-net.pos { text-shadow: 0 0 20px rgba(5, 150, 105, 0.55); }
 .bank-net.neg { text-shadow: 0 0 20px rgba(255, 77, 109, 0.45); }
-.stat-value.pos { text-shadow: 0 0 14px rgba(16, 185, 129, 0.5); }
+.stat-value.pos { text-shadow: 0 0 14px rgba(5, 150, 105, 0.5); }
 
 /* buttons → pills */
 .primary, .secondary, .add-leg, .chip, .x-btn, .stamp, .pill, .vbadge, .league-tag, .streak, .vf-status, .edit { border-radius: var(--r-btn); }
@@ -423,7 +423,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-s
 .ticket-won::before { box-shadow: 0 0 12px var(--won); }
 .ticket-lost::before { box-shadow: 0 0 10px var(--lost); }
 .ticket-pending::before { box-shadow: 0 0 12px var(--accent); }
-.ticket-won { box-shadow: var(--glow-green); border-color: rgba(16, 185, 129, 0.35); }
+.ticket-won { box-shadow: var(--glow-green); border-color: rgba(5, 150, 105, 0.35); }
 .ticket-live { box-shadow: var(--glow); border-color: rgba(183, 140, 255, 0.45); animation: live-glow 2.4s ease-in-out infinite; }
 .ticket-lost { box-shadow: var(--glow-red); }
 @keyframes live-glow { 50% { box-shadow: 0 0 0 1px rgba(183, 140, 255, 0.6), 0 0 34px rgba(155, 92, 255, 0.5); } }
@@ -435,21 +435,21 @@ input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-s
 
 /* stamps glow */
 .stamp { transform: none; border-width: 1.5px; padding: 5px 12px; }
-.stamp-won { box-shadow: 0 0 14px rgba(16, 185, 129, 0.55), inset 0 0 10px rgba(16, 185, 129, 0.2); text-shadow: 0 0 8px rgba(16, 185, 129, 0.7); }
+.stamp-won { box-shadow: 0 0 14px rgba(5, 150, 105, 0.55), inset 0 0 10px rgba(5, 150, 105, 0.2); text-shadow: 0 0 8px rgba(5, 150, 105, 0.7); }
 .stamp-lost { box-shadow: 0 0 12px rgba(255, 77, 109, 0.4), inset 0 0 8px rgba(255, 77, 109, 0.15); }
 .stamp-live { box-shadow: 0 0 14px rgba(183, 140, 255, 0.6), inset 0 0 10px rgba(183, 140, 255, 0.2); text-shadow: 0 0 8px rgba(183, 140, 255, 0.8); }
-.pill.status-won { box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); }
+.pill.status-won { box-shadow: 0 0 12px rgba(5, 150, 105, 0.35); }
 .pill.status-live { box-shadow: 0 0 12px rgba(183, 140, 255, 0.4); }
-.vbadge.on { box-shadow: 0 0 10px rgba(16, 185, 129, 0.35); }
+.vbadge.on { box-shadow: 0 0 10px rgba(5, 150, 105, 0.35); }
 .dot { box-shadow: 0 0 10px var(--live); }
 
 /* form pips + bars */
 .form-pip { border-radius: 50%; }
-.form-pip.won { box-shadow: 0 0 10px rgba(16, 185, 129, 0.6); }
+.form-pip.won { box-shadow: 0 0 10px rgba(5, 150, 105, 0.6); }
 .form-pip.lost { box-shadow: 0 0 8px rgba(255, 77, 109, 0.45); }
 .bar, .league-bar { border-radius: 999px; height: 10px; }
 .bar > div, .league-bar > div { border-radius: 999px; box-shadow: 0 0 10px rgba(155, 92, 255, 0.7); }
-.leg.status-won .bar > div { box-shadow: 0 0 10px rgba(16, 185, 129, 0.7); }
+.leg.status-won .bar > div { box-shadow: 0 0 10px rgba(5, 150, 105, 0.7); }
 
 /* avatar */
 .avatar { border-radius: 50%; box-shadow: 0 0 0 2px rgba(183, 140, 255, 0.6), 0 0 22px rgba(123, 47, 247, 0.65); }
@@ -467,7 +467,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-s
 .corner.tr { border-top-right-radius: 18px; }
 .corner.bl { border-bottom-left-radius: 18px; }
 .corner.br { border-bottom-right-radius: 18px; }
-.viewfinder.done .corner { filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.9)); }
+.viewfinder.done .corner { filter: drop-shadow(0 0 8px rgba(5, 150, 105, 0.9)); }
 .vf-icon { border-radius: 50%; box-shadow: 0 0 30px rgba(123, 47, 247, 0.5); }
 .laser { border-radius: 999px; }
 .vf-img { border-radius: var(--r-card); }
@@ -489,7 +489,7 @@ input:focus, select:focus { outline: none; border-color: var(--accent-hi); box-s
 :root {
   --glow: 0 0 0 1px rgba(155, 92, 255, 0.28), 0 0 12px rgba(123, 47, 247, 0.18);
   --glow-soft: 0 0 0 1px rgba(155, 92, 255, 0.12), 0 6px 20px rgba(0, 0, 0, 0.35);
-  --glow-green: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 0 12px rgba(16, 185, 129, 0.12);
+  --glow-green: 0 0 0 1px rgba(5, 150, 105, 0.35), 0 0 12px rgba(5, 150, 105, 0.12);
   --glow-red: 0 0 0 1px rgba(255, 77, 109, 0.25);
 }
 body { background: radial-gradient(ellipse 80% 35% at 50% -5%, rgba(123, 47, 247, 0.14), transparent 70%), var(--bg); }
@@ -660,3 +660,7 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
   .splash-drop, .splash-ripple { display: none; }
 }
 .boot-blank { position: fixed; inset: 0; background: #000; }
+
+/* dark emerald: deeper fills keep white text readable */
+.form-pip.won { background: #047857; color: #ffffff; }
+.vbadge.on { color: #10b981; }
