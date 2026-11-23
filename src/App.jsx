@@ -12,7 +12,6 @@ import Legal from './components/Legal.jsx';
 import AgeGate from './components/AgeGate.jsx';
 import Rooms from './components/Rooms.jsx';
 import RoomView from './components/RoomView.jsx';
-import { Avatar } from './lib/profile.jsx';
 import { capturePendingJoin, takePendingJoin, joinRoom } from './lib/rooms.js';
 
 capturePendingJoin();
@@ -131,9 +130,16 @@ export default function App() {
         <button className="brand" onClick={() => go({ name: 'list' })} aria-label="Sweatr home">
           <img src="/wordmark.svg" alt="Sweatr" className="wordmark-img" />
         </button>
-        <button className={`topbar-me ${view.name === 'profile' ? 'on' : ''}`} onClick={() => go({ name: 'profile' })} aria-label="Your profile">
-          <Avatar user={user} size={36} />
-        </button>
+        <svg className="topbar-drop" viewBox="0 0 24 32" aria-hidden="true">
+          <defs>
+            <linearGradient id="dropFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f3ebff" />
+              <stop offset="1" stopColor="#c9a8ff" />
+            </linearGradient>
+          </defs>
+          <path d="M12 1.5C12 1.5 3 12.6 3 19.5a9 9 0 0 0 18 0C21 12.6 12 1.5 12 1.5z" fill="url(#dropFill)" />
+          <path d="M8.2 19.8a4.3 4.3 0 0 0 3.3 4.4" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.85" />
+        </svg>
       </header>
       <main ref={pageRef} key={anim.key} className={`page page-${anim.dir}`}>
         {view.name === 'list' && (
