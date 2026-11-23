@@ -6,6 +6,6 @@
 </defs>
 <rect width="512" height="512" rx="116" fill="url(#ssharpfast_bg)"/>
 <rect x="8" y="8" width="496" height="496" rx="110" fill="none" stroke="#7b2ff7" stroke-opacity="0.45" stroke-width="4"/>
-<g filter="url(#ssharpfast_glow)" transform="translate(256 256) skewX(-12) translate(-256 -256)"><polygon points="222,140 356,140 340,188 236,188 226,198 226,232 324,232 356,264 356,334 316,374 178,374 194,326 298,326 308,316 308,280 210,280 178,248 178,184" fill="url(#ssharpfast_s)"/></g>
-<path filter="url(#ssharpfast_glow)" fill="#ffffff" transform="translate(396 112) scale(0.9)" d="M0 -46 C 0 -46 -30 -8 -30 14 A 30 30 0 0 0 30 14 C 30 -8 0 -46 0 -46 Z"/>
+<g id="mark" transform="translate(-32 34)"><g filter="url(#ssharpfast_glow)" transform="translate(256 256) skewX(-12) translate(-256 -256)"><polygon points="222,140 356,140 340,188 236,188 226,198 226,232 324,232 356,264 356,334 316,374 178,374 194,326 298,326 308,316 308,280 210,280 178,248 178,184" fill="url(#ssharpfast_s)"/></g>
+<path filter="url(#ssharpfast_glow)" fill="#ffffff" transform="translate(396 112) scale(0.9)" d="M0 -46 C 0 -46 -30 -8 -30 14 A 30 30 0 0 0 30 14 C 30 -8 0 -46 0 -46 Z"/></g>
 </svg>
