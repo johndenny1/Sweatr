@@ -18,6 +18,7 @@ import { useLiveSlips, useLegMoments } from '../lib/live.js';
 import { describeLeg } from '../lib/evaluate.js';
 import { toWin, fmtMoney } from '../lib/money.js';
 import { initials } from '../lib/profile.jsx';
+import { fmtSubmitted } from '../lib/when.js';
 
 const STAMP = { won: 'Cashed', lost: 'Busted', live: 'Live', pending: 'Open', push: 'Push' };
 const LEG_TEXT = { pending: 'Soon', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
@@ -335,7 +336,7 @@ function BoardSlip({ parlay, live, owner, mine, onOpen, onRemove }) {
             {parlay.verified && <span className="vbadge on sm">✓</span>}
           </div>
           <div className="muted small">
-            {parlay.name} · {hits}/{rows.length} hit{parlay.odds ? ` · ${parlay.odds}` : ''}
+            {parlay.name} · {fmtSubmitted(parlay.created_at)} · {hits}/{rows.length} hit{parlay.odds ? ` · ${parlay.odds}` : ''}
             {win != null ? ` · to win ${fmtMoney(win)}` : ''}
           </div>
         </div>

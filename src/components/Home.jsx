@@ -7,6 +7,7 @@ import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
 import { CameraIcon } from './Icons.jsx';
 import Footer from './Footer.jsx';
+import { fmtSubmitted } from '../lib/when.js';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -49,7 +50,7 @@ function Ticket({ parlay, status, onOpen }) {
             ))}
             <span className="muted">
               {legs.length} leg{legs.length === 1 ? '' : 's'} ·{' '}
-              {new Date(parlay.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              {fmtSubmitted(parlay.created_at)}
             </span>
           </div>
         </div>

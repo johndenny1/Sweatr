@@ -4,6 +4,7 @@ import { getBox } from '../lib/api.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
 import { saveResult } from '../lib/settle.js';
 import RecapSheet from './RecapSheet.jsx';
+import { fmtSubmitted } from '../lib/when.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 
 const REFRESH_MS = 30_000;
@@ -102,6 +103,7 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
           </h2>
           <span className={`pill status-${overall}`}>{STATUS_TEXT[overall]}</span>
         </div>
+        <div className="submitted">Submitted {fmtSubmitted(parlay.created_at)}</div>
         {!parlay.verified && parlay.verify_note && (
           <div className="muted small">Not counted in stats · {parlay.verify_note}</div>
         )}
