@@ -1,5 +1,9 @@
 -- Sweatr slip verification. Run once in Supabase → SQL Editor (after schema.sql).
 
+-- 0. The server (secret key) needs table access too on newer Supabase projects.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.parlays to service_role;
+
 -- 1. New columns
 alter table public.parlays add column if not exists status text default 'pending';
 alter table public.parlays add column if not exists payout numeric;
