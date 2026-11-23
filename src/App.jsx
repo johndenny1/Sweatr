@@ -41,8 +41,8 @@ export default function App() {
   return (
     <div className={`app ${showNav ? 'with-nav' : ''}`}>
       <header className="topbar">
-        <button className="brand" onClick={() => go({ name: 'list' })}>
-          Sweatr
+        <button className="brand" onClick={() => go({ name: 'list' })} aria-label="Sweatr home">
+          <img src="/wordmark.svg" alt="Sweatr" className="wordmark-img" />
         </button>
       </header>
       <main>

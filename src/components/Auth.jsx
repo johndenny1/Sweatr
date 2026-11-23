@@ -21,7 +21,9 @@ export default function Auth() {
 
   return (
     <div className="auth">
-      <h1 className="logo">Sweatr</h1>
+      <h1 className="logo">
+        <img src="/wordmark.svg" alt="Sweatr" className="wordmark-img big" />
+      </h1>
       <p className="muted">Follow every leg of your parlay live.</p>
       <form onSubmit={submit} className="card stack">
         <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />

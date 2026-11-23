@@ -549,3 +549,7 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
   -webkit-text-stroke: 1px #14081f; paint-order: stroke fill;
   text-shadow: 0 0 14px rgba(123, 47, 247, 0.55), 0 0 2px rgba(123, 47, 247, 0.6);
 }
+
+.brand, .logo { -webkit-text-stroke: 0; text-shadow: none; }
+.wordmark-img { height: 40px; width: auto; display: block; margin: -6px 0 -6px -6px; }
+.wordmark-img.big { height: 84px; margin: 0 0 0 -10px; }
