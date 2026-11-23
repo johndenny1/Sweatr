@@ -13,7 +13,7 @@ import { LEAGUES, summaryUrl, normalizeSummary } from './_espn.js';
 import { legsMatchScan, sameOdds, sameStake, legFingerprint } from '../src/lib/fingerprint.js';
 import { americanToDecimal } from '../src/lib/money.js';
 
-const TYPES = new Set(['prop', 'moneyline', 'spread', 'total']);
+const TYPES = new Set(['prop', 'teamprop', 'moneyline', 'spread', 'total']);
 
 function cleanLegs(legs) {
   if (!Array.isArray(legs) || !legs.length || legs.length > 25) return null;
