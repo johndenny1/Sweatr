@@ -223,9 +223,34 @@ export function normalizeDetail(summary, scoreboard, eventId) {
       .map((s) => ({ key: s.name || s.label, label: s.label || s.name, value: s.displayValue })),
   }));
 
+  // Full box score, grouped the way ESPN shows it (Passing / Rushing / Batting / ...).
+  const titleCase = (t) => String(t || '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+  const boxscore = (summary?.boxscore?.players || []).map((team) => ({
+    teamId: String(team.team?.id || ''),
+    abbr: team.team?.abbreviation || '',
+    groups: (team.statistics || [])
+      .map((g) => ({
+        title: titleCase(g.text || g.name || g.type || 'Players'),
+        labels: g.labels || g.names || [],
+        totals: Array.isArray(g.totals) && g.totals.some((t) => t !== '' && t != null) ? g.totals : null,
+        rows: (g.athletes || []).map((a) => ({
+          id: String(a.athlete?.id || ''),
+          name: a.athlete?.shortName || a.athlete?.displayName || '',
+          fullName: a.athlete?.displayName || '',
+          pos: a.athlete?.position?.abbreviation || '',
+          starter: a.starter === true,
+          dnp: a.didNotPlay === true || !(a.stats || []).length,
+          reason: a.didNotPlay ? a.reason || 'DNP' : '',
+          stats: a.stats || [],
+        })),
+      }))
+      .filter((g) => g.rows.length),
+  }));
+
   return {
     game,
     players,
+    boxscore,
     home,
     away,
     venue: summary?.gameInfo?.venue?.fullName || '',

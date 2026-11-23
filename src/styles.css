@@ -577,3 +577,21 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
   .page-forward, .page-back { animation: page-fade 120ms ease-out both; }
   @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
 }
+
+/* ---------- box score ---------- */
+.chip { display: inline-flex; align-items: center; gap: 6px; }
+.chip-logo { width: 18px; height: 18px; object-fit: contain; }
+.box-card { padding: 14px 0 10px; }
+.box-title { padding: 0 16px 8px; }
+.box-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.box-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.box-table th { color: var(--muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 10px; text-align: center; white-space: nowrap; border-bottom: 1px solid rgba(155, 92, 255, 0.18); }
+.box-table td { padding: 9px 10px; text-align: center; white-space: nowrap; border-bottom: 1px solid rgba(155, 92, 255, 0.08); }
+.box-table .sticky-col { position: sticky; left: 0; z-index: 1; text-align: left; background: #120c1e; padding-left: 16px; min-width: 120px; }
+.box-table th.sticky-col { z-index: 2; }
+.box-name { font-weight: 600; margin-right: 6px; }
+.box-pos { color: var(--muted); font-size: 0.7rem; }
+.box-table tr.mine td { background: rgba(123, 47, 247, 0.16); }
+.box-table tr.mine .sticky-col { background: #24124a; box-shadow: inset 3px 0 0 var(--accent-hi); }
+.box-table tr.totals td { font-weight: 700; border-bottom: 0; color: var(--text); }
+.dnp { padding: 8px 16px 2px; line-height: 1.4; }

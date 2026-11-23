@@ -138,6 +138,78 @@ function Linescore({ detail }) {
   );
 }
 
+function BoxScore({ detail, legs }) {
+  const teams = detail.boxscore || [];
+  const mine = new Set(legs.filter((l) => l.type === 'prop').map((l) => String(l.playerId)));
+  // Open on the team of the first player in your parlay, else the away team.
+  const firstMine = teams.find((t) => t.groups.some((g) => g.rows.some((r) => mine.has(r.id))));
+  const [teamId, setTeamId] = useState(firstMine?.teamId || detail.away?.id || teams[0]?.teamId);
+  const team = teams.find((t) => t.teamId === teamId) || teams[0];
+
+  if (!teams.length) return <div className="card"><p className="muted small center">Box score shows up once the game starts.</p></div>;
+
+  return (
+    <div className="stack">
+      <div className="chips">
+        {[detail.away, detail.home].filter(Boolean).map((t) => (
+          <button key={t.id} className={`chip ${team?.teamId === t.id ? 'on' : ''}`} onClick={() => setTeamId(t.id)}>
+            {t.logo && <img src={t.logo} alt="" className="chip-logo" />}
+            {t.abbr}
+          </button>
+        ))}
+      </div>
+      {team?.groups.map((g) => {
+        const played = g.rows.filter((r) => !r.dnp);
+        const dnp = g.rows.filter((r) => r.dnp);
+        return (
+          <div key={g.title} className="card box-card">
+            <div className="label box-title">{g.title}</div>
+            <div className="box-scroll">
+              <table className="box-table">
+                <thead>
+                  <tr>
+                    <th className="sticky-col">Player</th>
+                    {g.labels.map((l, i) => (
+                      <th key={i}>{l}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {played.map((r) => (
+                    <tr key={r.id} className={mine.has(r.id) ? 'mine' : ''}>
+                      <td className="sticky-col">
+                        <span className="box-name">{r.name}</span>
+                        <span className="box-pos">{r.pos}</span>
+                      </td>
+                      {g.labels.map((_, i) => (
+                        <td key={i}>{r.stats[i] ?? ''}</td>
+                      ))}
+                    </tr>
+                  ))}
+                  {g.totals && (
+                    <tr className="totals">
+                      <td className="sticky-col">Team</td>
+                      {g.labels.map((_, i) => (
+                        <td key={i}>{g.totals[i] ?? ''}</td>
+                      ))}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {dnp.length > 0 && (
+              <div className="muted small dnp">
+                Did not play: {dnp.map((r) => r.name + (r.reason ? ` (${r.reason.toLowerCase()})` : '')).join(', ')}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {mine.size > 0 && <p className="muted small center">Players in your parlay are highlighted.</p>}
+    </div>
+  );
+}
+
 export default function GameView({ league, gameId, date, legs = [], onBack }) {
   const [detail, setDetail] = useState(null);
   const [error, setError] = useState('');
@@ -229,14 +301,19 @@ export default function GameView({ league, gameId, date, legs = [], onBack }) {
         </div>
       )}
 
-      <div className="chips">
+      <div className="chips scroll-x">
         <button className={`chip ${tab === 'plays' ? 'on' : ''}`} onClick={() => setTab('plays')}>
-          Play-by-play
+          Plays
+        </button>
+        <button className={`chip ${tab === 'box' ? 'on' : ''}`} onClick={() => setTab('box')}>
+          Box score
         </button>
         <button className={`chip ${tab === 'stats' ? 'on' : ''}`} onClick={() => setTab('stats')}>
           Team stats
         </button>
       </div>
+
+      {tab === 'box' && <BoxScore detail={detail} legs={legs} />}
 
       {tab === 'plays' && (
         <div className="card plays">
