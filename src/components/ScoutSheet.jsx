@@ -43,9 +43,11 @@ export function ScoutReport({ legs, odds, stake }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [legs.map((l) => l.id || `${l.gameId}${l.playerId}${l.line}`).join('|'), odds]);
 
+  const [deep, setDeep] = useState(false);
   const dec = americanToDecimal(odds);
   const report = result?.report;
   const data = result?.data;
+  const count = (r) => report?.legs.filter((l) => l.rating === r).length || 0;
 
   return (
       <div className="scout-body">
@@ -62,7 +64,19 @@ export function ScoutReport({ legs, odds, stake }) {
             <div className={`scout-overall tone-${OVERALL_TONE[report.overall] || 'live'}`}>
               <span className="scout-grade">{report.overall}</span>
               <div className="scout-headline">{report.headline}</div>
-              {report.summary && <p>{report.summary}</p>}
+              <div className="scout-tally">
+                {count('strong') > 0 && <span className="rate-strong">● {count('strong')} strong</span>}
+                {count('okay') > 0 && <span className="rate-okay">● {count('okay')} okay</span>}
+                {count('risky') > 0 && <span className="rate-risky">● {count('risky')} risky</span>}
+              </div>
+              {!deep && report.watch?.length > 0 && (
+                <ul className="scout-quick">
+                  {report.watch.slice(0, 2).map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              )}
+              {deep && report.summary && <p>{report.summary}</p>}
               <div className="scout-chips">
                 <span>{legs.length} legs</span>
                 {odds && <span>{odds}</span>}
@@ -70,6 +84,15 @@ export function ScoutReport({ legs, odds, stake }) {
               </div>
             </div>
 
+            {!deep && (
+              <button className="scout-deeper" onClick={() => setDeep(true)}>
+                Go deeper
+                <small>Every leg’s last 5 games, injuries, weather and news</small>
+              </button>
+            )}
+
+            {deep && (
+            <>
             {report.watch?.length > 0 && (
               <div className="card scout-watch">
                 <div className="label">Keep an eye on</div>
@@ -174,6 +197,9 @@ export function ScoutReport({ legs, odds, stake }) {
                 );
               })}
             </div>
+
+            </>
+            )}
 
             <p className="muted small center scout-foot">
               Based on each player’s and team’s last 5 games, injury reports and the forecast. Recent games don’t guarantee
