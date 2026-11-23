@@ -542,3 +542,10 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .brand, .logo, .boot { font-family: var(--wordmark); letter-spacing: 0.03em; }
 .brand { font-size: 1.9rem; }
 .logo { font-size: 3.6rem; }
+
+/* crisp wordmark: sharp letters, soft halo behind */
+.brand, .logo, .boot {
+  color: #b388ff; filter: none;
+  -webkit-text-stroke: 1px #14081f; paint-order: stroke fill;
+  text-shadow: 0 0 14px rgba(123, 47, 247, 0.55), 0 0 2px rgba(123, 47, 247, 0.6);
+}
