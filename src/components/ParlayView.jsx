@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js';
 import { getBox } from '../lib/api.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
 import { saveResult } from '../lib/settle.js';
+import RecapSheet from './RecapSheet.jsx';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 
 const REFRESH_MS = 30_000;
@@ -13,6 +14,7 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
   const [boxes, setBoxes] = useState({}); // key `${league}:${gameId}` → { game, players }
   const [updated, setUpdated] = useState(null);
   const [error, setError] = useState('');
+  const [showRecap, setShowRecap] = useState(false);
 
   useEffect(() => {
     supabase
@@ -117,6 +119,14 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
           </div>
         )}
       </div>
+
+      <button className="recap-btn" onClick={() => setShowRecap(true)}>
+        <span className="recap-btn-icon">↗</span>
+        {overall === 'won' ? 'Share the cash' : overall === 'lost' ? 'Share the bad beat' : 'Share the sweat'}
+      </button>
+      {showRecap && (
+        <RecapSheet parlay={parlay} rows={legResults} overall={overall} onClose={() => setShowRecap(false)} />
+      )}
 
       {groups.map((g) => {
         const game = g.box?.game;

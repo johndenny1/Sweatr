@@ -692,3 +692,26 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .legal ul { padding-left: 18px; margin: 6px 0; }
 .legal li { margin: 6px 0; }
 .legal p { margin: 6px 0; }
+
+/* ---------- sweat recaps ---------- */
+.recap-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  padding: 14px; border-radius: 999px; font-family: var(--block); text-transform: uppercase; letter-spacing: 0.05em;
+  color: #fff; border: 1px solid rgba(183, 140, 255, 0.5);
+  background: linear-gradient(135deg, rgba(155, 92, 255, 0.28), rgba(123, 47, 247, 0.12));
+  box-shadow: 0 0 18px rgba(123, 47, 247, 0.35);
+}
+.recap-btn-icon { font-size: 1.1rem; }
+.recap-sheet {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 16px);
+  background: rgba(0, 0, 0, 0.94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  animation: page-in-right 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.recap-top { display: flex; justify-content: space-between; align-items: center; }
+.recap-preview { flex: 1; min-height: 0; display: grid; place-items: center; }
+.recap-preview img { max-height: 100%; max-width: 100%; border-radius: 22px; box-shadow: 0 0 40px rgba(123, 47, 247, 0.35); }
+.recap-loading { color: var(--muted); }
+.recap-actions { display: flex; }
+.recap-save { text-align: center; text-decoration: none; }
+.recap-save.disabled { opacity: 0.4; pointer-events: none; }
