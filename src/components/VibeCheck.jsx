@@ -3,6 +3,8 @@ import Scanner from './Scanner.jsx';
 import { ScoutReport } from './ScoutSheet.jsx';
 import { describeLeg } from '../lib/evaluate.js';
 
+const RATING_TEXT = { strong: 'Strong', fair: 'Fair', weak: 'Weak' };
+
 // Sweat Check: scan a slip you HAVEN'T placed yet and get the scout report.
 // Nothing is saved, verified or counted toward your record.
 export default function VibeCheck({ onBack, onTrackInstead }) {
@@ -12,6 +14,7 @@ export default function VibeCheck({ onBack, onTrackInstead }) {
   const [stake, setStake] = useState('');
   const [error, setError] = useState('');
   const [run, setRun] = useState(0);
+  const [ratings, setRatings] = useState({}); // leg index → strong | fair | weak
   const [scanned, setScanned] = useState(0); // legs on the slip as scanned (odds only apply to the full slip)
 
   function onScan({ matched, unmatched: um, odds: o, stake: s }) {
@@ -21,6 +24,7 @@ export default function VibeCheck({ onBack, onTrackInstead }) {
     setUnmatched(um);
     setOdds(o || '');
     setStake(s != null ? String(s) : '');
+    setRatings({});
     setRun((n) => n + 1);
   }
 
@@ -53,14 +57,16 @@ export default function VibeCheck({ onBack, onTrackInstead }) {
             <span className="vbadge off sm">Not saved</span>
           </div>
           {legs.map((l, i) => (
-            <div key={l.id || i} className="vibe-leg">
+            <div key={l.id || i} className={`vibe-leg ${ratings[i] ? `rate-${ratings[i]}` : ''}`}>
               <span className="league-tag">{l.league.toUpperCase()}</span>
               <span className="grow">{describeLeg(l)}</span>
+              {ratings[i] && <span className={`scout-pill rate-${ratings[i]}`}>{RATING_TEXT[ratings[i]]}</span>}
               <button
                 className="x-btn"
                 aria-label="Drop this leg"
                 onClick={() => {
                   setLegs(legs.filter((_, j) => j !== i));
+                  setRatings({});
                   setRun((n) => n + 1);
                 }}
               >
@@ -77,7 +83,7 @@ export default function VibeCheck({ onBack, onTrackInstead }) {
         </div>
       )}
 
-      {legs.length > 0 && <ScoutReport key={run} legs={legs} odds={legs.length === scanned ? odds : ''} stake={stake} />}
+      {legs.length > 0 && <ScoutReport key={run} onRatings={setRatings} legs={legs} odds={legs.length === scanned ? odds : ''} stake={stake} />}
 
       {legs.length > 0 && (
         <button className="link small center" onClick={onTrackInstead}>

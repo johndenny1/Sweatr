@@ -22,7 +22,7 @@ async function fetchScout(payload) {
 const STEPS = ['Pulling recent games', 'Checking injuries and weather', 'Sizing it up'];
 
 // The report itself: fetches and shows the scout for a list of legs.
-export function ScoutReport({ legs, odds, stake }) {
+export function ScoutReport({ legs, odds, stake, onRatings }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
@@ -41,6 +41,7 @@ export function ScoutReport({ legs, odds, stake }) {
       .then((r) => {
         if (!alive) return;
         setResult(r);
+        onRatings?.(Object.fromEntries(r.report.legs.map((l) => [l.i, l.rating])));
         // Start writing the details right away, so Go deeper is usually ready by the time you tap it
         fetchScout({ mode: 'full', data: r.data, odds, ratings: r.report.legs.map((l) => ({ i: l.i, r: l.rating })) })
           .then((f) => alive && setFull(f.report))

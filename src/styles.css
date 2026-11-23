@@ -1069,3 +1069,10 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .scout-more.open span { transform: rotate(90deg); }
 .scout-detail { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid var(--line); }
 .scout-flag { font-size: 0.85rem; font-weight: 700; color: var(--lost); }
+
+/* Sweat Check leg list colored by rating */
+.vibe-leg { padding: 8px 8px 8px 12px; border-radius: 14px; border: 1px solid transparent; border-left: 4px solid var(--line); background: rgba(0, 0, 0, 0.25); transition: background 200ms ease; }
+.vibe-leg.rate-strong { border-left-color: var(--won); background: rgba(47, 227, 154, 0.08); border-color: rgba(47, 227, 154, 0.25); }
+.vibe-leg.rate-fair { border-left-color: var(--fair); background: rgba(255, 159, 67, 0.08); border-color: rgba(255, 159, 67, 0.25); }
+.vibe-leg.rate-weak { border-left-color: var(--lost); background: rgba(255, 77, 109, 0.08); border-color: rgba(255, 77, 109, 0.25); }
+.vibe-leg .scout-pill { font-size: 0.62rem; padding: 4px 8px; }
