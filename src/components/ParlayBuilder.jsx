@@ -4,6 +4,7 @@ import { describeLeg } from '../lib/evaluate.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 import LegForm from './LegForm.jsx';
 import Scanner from './Scanner.jsx';
+import ScoutSheet from './ScoutSheet.jsx';
 import { legFingerprint, legsMatchScan, sameOdds, sameStake } from '../lib/fingerprint.js';
 
 export default function ParlayBuilder({ onCancel, onSaved }) {
@@ -15,6 +16,7 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [unmatched, setUnmatched] = useState([]);
+  const [scouting, setScouting] = useState(false);
   const [scan, setScan] = useState(null); // { token, stake, odds, prints, duplicate }
 
   function onScan({ matched, unmatched, stake: s, odds: o, rawLegs, token, duplicate }) {
@@ -182,6 +184,14 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
           </div>
         </div>
       </div>
+
+      {legs.length > 0 && (
+        <button className="scout-btn" onClick={() => setScouting(true)}>
+          <span>🔍</span> Scout this slip
+          <small>Recent games, injuries, weather</small>
+        </button>
+      )}
+      {scouting && <ScoutSheet legs={legs} odds={odds} stake={stake} onClose={() => setScouting(false)} />}
 
       {error && <p className="error">{error}</p>}
 

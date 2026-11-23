@@ -4,6 +4,7 @@ import { getBox } from '../lib/api.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
 import { saveResult } from '../lib/settle.js';
 import RecapSheet from './RecapSheet.jsx';
+import ScoutSheet from './ScoutSheet.jsx';
 import { fmtSubmitted } from '../lib/when.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 
@@ -16,6 +17,7 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
   const [updated, setUpdated] = useState(null);
   const [error, setError] = useState('');
   const [showRecap, setShowRecap] = useState(false);
+  const [scouting, setScouting] = useState(false);
 
   useEffect(() => {
     supabase
@@ -131,6 +133,13 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
       {showRecap && (
         <RecapSheet parlay={parlay} rows={legResults} overall={overall} onClose={() => setShowRecap(false)} />
       )}
+      {overall === 'pending' && (
+        <button className="scout-btn" onClick={() => setScouting(true)}>
+          <span>🔍</span> Scout this slip
+          <small>Recent games, injuries, weather</small>
+        </button>
+      )}
+      {scouting && <ScoutSheet legs={parlay.legs || []} odds={parlay.odds} stake={parlay.stake} onClose={() => setScouting(false)} />}
 
       {groups.map((g) => {
         const game = g.box?.game;
