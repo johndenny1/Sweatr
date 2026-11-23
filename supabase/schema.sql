@@ -29,3 +29,8 @@ create policy "delete own parlays" on public.parlays
 -- Newer Supabase projects don't auto-grant table access to signed-in users.
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.parlays to authenticated;
+
+-- Results, so winnings and your record add up over time.
+alter table public.parlays add column if not exists status text default 'pending';
+alter table public.parlays add column if not exists payout numeric;
+alter table public.parlays add column if not exists settled_at timestamptz;

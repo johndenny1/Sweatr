@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { getBox } from '../lib/api.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
+import { saveResult } from '../lib/settle.js';
+import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 
 const REFRESH_MS = 30_000;
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
@@ -57,6 +59,12 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
     return () => clearInterval(t);
   }, [parlay, allFinal, refresh]);
 
+  // Save the result once the parlay is decided so it counts toward winnings.
+  const decided = parlay && legResults.length ? parlayStatus(legResults.map((r) => r.result)) : null;
+  useEffect(() => {
+    if (parlay && (decided === 'won' || decided === 'lost') && Object.keys(boxes).length) saveResult(parlay, decided);
+  }, [parlay, decided, boxes]);
+
   async function remove() {
     if (!window.confirm('Delete this parlay?')) return;
     await supabase.from('parlays').delete().eq('id', id);
@@ -91,8 +99,17 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
         <div className="muted small">
           {hits}/{parlay.legs.length} legs hit
           {parlay.odds ? ` · ${parlay.odds}` : ''}
-          {parlay.stake != null ? ` · $${parlay.stake} stake` : ''}
+          {parlay.stake != null ? ` · ${fmtMoney(parlay.stake)} stake` : ''}
         </div>
+        {payoutFor(parlay.stake, parlay.odds) != null && (
+          <div className={`hero-money ${overall}`}>
+            {overall === 'won'
+              ? `Cashed ${fmtMoney(payoutFor(parlay.stake, parlay.odds))}`
+              : overall === 'lost'
+                ? `Lost ${fmtMoney(parlay.stake)}`
+                : `To win ${fmtMoney(toWin(parlay.stake, parlay.odds))}`}
+          </div>
+        )}
       </div>
 
       {groups.map((g) => {

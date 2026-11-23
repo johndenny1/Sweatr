@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { describeLeg } from '../lib/evaluate.js';
+import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 import LegForm from './LegForm.jsx';
-import { readSlip, resolveLegs } from '../lib/scan.js';
+import Scanner from './Scanner.jsx';
 
 export default function ParlayBuilder({ onCancel, onSaved }) {
   const [name, setName] = useState('');
@@ -12,32 +13,15 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [scanning, setScanning] = useState('');
   const [unmatched, setUnmatched] = useState([]);
-  const fileRef = useRef(null);
 
-  async function scan(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  function onScan({ matched, unmatched, stake: s, odds: o }) {
     setError('');
-    setUnmatched([]);
-    try {
-      setScanning('Reading your slip…');
-      const slip = await readSlip(file);
-      if (!slip.legs.length) throw new Error("Didn't find any legs. Try a clearer screenshot of the bet slip.");
-      setScanning(`Matching ${slip.legs.length} leg${slip.legs.length === 1 ? '' : 's'} to games…`);
-      const { matched, unmatched } = await resolveLegs(slip.legs);
-      setLegs((prev) => [...prev, ...matched]);
-      setUnmatched(unmatched);
-      if (slip.stake != null && stake === '') setStake(String(slip.stake));
-      if (slip.odds && !odds) setOdds(slip.odds);
-      setAdding(!matched.length);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setScanning('');
-    }
+    setLegs((prev) => [...prev, ...matched]);
+    setUnmatched(unmatched);
+    if (s != null && stake === '') setStake(String(s));
+    if (o && !odds) setOdds(o);
+    if (!matched.length) setAdding(true);
   }
 
   async function save() {
@@ -58,82 +42,109 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
     onSaved(data.id);
   }
 
+  const win = toWin(stake, odds);
+  const payout = payoutFor(stake, odds);
+
   return (
-    <div className="stack">
+    <div className="stack builder">
       <div className="row between">
-        <h2>New parlay</h2>
+        <h2>New slip</h2>
         <button className="link" onClick={onCancel}>
           Cancel
         </button>
       </div>
 
-      <input ref={fileRef} type="file" accept="image/*" hidden onChange={scan} />
-      <button className="primary big" disabled={!!scanning} onClick={() => fileRef.current?.click()}>
-        {scanning || 'Scan bet slip'}
-      </button>
-      <p className="muted small center">Upload a screenshot and Sweatr fills in the legs, or add them by hand below.</p>
+      <Scanner onResult={onScan} onError={setError} />
 
-      {unmatched.length > 0 && (
-        <div className="card stack warn">
-          <div className="title small">Add these by hand</div>
-          {unmatched.map((u, i) => (
-            <div key={i} className="small">
-              <div>{u.label}</div>
-              <div className="muted">{u.reason}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="card stack">
-        <input placeholder="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="row gap">
-          <input
-            inputMode="decimal"
-            placeholder="Stake $"
-            value={stake}
-            onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ''))}
-          />
-          <input placeholder="Odds (e.g. +650)" value={odds} onChange={(e) => setOdds(e.target.value)} />
-        </div>
+      <div className="or-divider">
+        <span>or build it yourself</span>
       </div>
 
-      {legs.length > 0 && (
-        <div className="card stack">
+      <div className="ticket ticket-builder">
+        <div className="ticket-top">
+          <input
+            className="ticket-name-input"
+            placeholder={legs.length ? `${legs.length}-leg parlay` : 'Name your slip'}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <span className="stamp stamp-pending">
+            {legs.length} leg{legs.length === 1 ? '' : 's'}
+          </span>
+        </div>
+
+        <div className="ticket-legs">
+          {legs.length === 0 && <div className="muted small">Scanned or added legs land here.</div>}
           {legs.map((leg, i) => (
-            <div key={leg.id} className="row between leg-line">
-              <div>
-                <div>{describeLeg(leg)}</div>
-                <div className="muted small">
-                  {leg.league.toUpperCase()} · {leg.gameLabel}
-                </div>
+            <div key={leg.id} className="ticket-leg editable">
+              <span className="league-tag">{leg.league.toUpperCase()}</span>
+              <div className="grow">
+                <div className="leg-desc">{describeLeg(leg)}</div>
+                <div className="muted small">{leg.gameLabel}</div>
               </div>
-              <button className="link danger" onClick={() => setLegs(legs.filter((_, j) => j !== i))}>
-                Remove
+              <button className="x-btn" aria-label="Remove leg" onClick={() => setLegs(legs.filter((_, j) => j !== i))}>
+                ×
               </button>
             </div>
           ))}
         </div>
-      )}
 
-      {adding ? (
-        <LegForm
-          onAdd={(leg) => {
-            setLegs([...legs, leg]);
-            setAdding(false);
-          }}
-          onCancel={() => setAdding(false)}
-        />
-      ) : (
-        <button className="secondary" onClick={() => setAdding(true)}>
-          {legs.length ? '+ Add a leg by hand' : 'Add legs by hand'}
-        </button>
-      )}
+        {unmatched.length > 0 && (
+          <div className="unmatched">
+            <div className="label">Couldn't match, add by hand</div>
+            {unmatched.map((u, i) => (
+              <div key={i} className="small">
+                {u.label} <span className="muted">· {u.reason}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {adding ? (
+          <LegForm
+            onAdd={(leg) => {
+              setLegs([...legs, leg]);
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : (
+          <button className="add-leg" onClick={() => setAdding(true)}>
+            + Add a leg
+          </button>
+        )}
+
+        <div className="perf" />
+
+        <div className="ticket-foot inputs">
+          <label>
+            <span className="foot-label">Stake</span>
+            <input
+              inputMode="decimal"
+              placeholder="$0"
+              value={stake}
+              onChange={(e) => setStake(e.target.value.replace(/[^0-9.]/g, ''))}
+            />
+          </label>
+          <label>
+            <span className="foot-label">Odds</span>
+            <input placeholder="+650" value={odds} onChange={(e) => setOdds(e.target.value)} />
+          </label>
+          <div className="right">
+            <div className="foot-label">To win</div>
+            <div className="foot-val big pos">{win != null ? fmtMoney(win) : '–'}</div>
+            {payout != null && <div className="muted small">pays {fmtMoney(payout)}</div>}
+          </div>
+        </div>
+      </div>
 
       {error && <p className="error">{error}</p>}
-      <button className="primary big" disabled={!legs.length || saving} onClick={save}>
-        {saving ? 'Saving…' : `Save parlay (${legs.length} leg${legs.length === 1 ? '' : 's'})`}
-      </button>
+
+      <div className="sticky-save">
+        <button className="primary big" disabled={!legs.length || saving} onClick={save}>
+          {saving ? 'Saving…' : legs.length ? `Track ${legs.length}-leg slip` : 'Add legs to track'}
+        </button>
+      </div>
     </div>
   );
 }
