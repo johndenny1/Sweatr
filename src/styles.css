@@ -536,3 +536,9 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .boot { font-size: 3rem; }
 
 .brand, .logo, .boot { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--accent-hi); }
+
+/* ---------- wordmark: Lilita One (bubbly), matches the app icon ---------- */
+:root { --wordmark: 'Lilita One', 'Archivo Black', sans-serif; }
+.brand, .logo, .boot { font-family: var(--wordmark); letter-spacing: 0.03em; }
+.brand { font-size: 1.9rem; }
+.logo { font-size: 3.6rem; }
