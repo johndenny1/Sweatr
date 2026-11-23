@@ -35,23 +35,30 @@
 html, body { margin: 0; background: #000; }
 /* The app stays hidden until the splash starts fading, so it can never flash through mid-animation */
 html.booting #root { visibility: hidden; }
+/* While booting, the page can't grow or scroll, so the phone never re-measures the screen mid-animation */
+html.booting, html.booting body { overflow: hidden; height: 100%; }
 .splash {
-  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden;
+  /* Pinned to the screen's full height (lvh doesn't change when iPhone re-measures the viewport),
+     and the logo is placed at a fixed spot instead of re-centering, so it can't jump. */
+  position: fixed; top: 0; left: 0; width: 100%; height: var(--sh, 100vh); z-index: 100; overflow: hidden;
   background: #000; transition: opacity 320ms ease;
 }
 .splash::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 70% 45% at 50% 48%, #1d0f3a 0%, #0a0612 55%, #000 100%);
+  background: radial-gradient(ellipse 70% 45% at 50% 50%, #1d0f3a 0%, #0a0612 55%, #000 100%);
   animation: splash-fade 450ms ease-out both; will-change: opacity;
 }
 .splash.leaving { opacity: 0; pointer-events: none; }
 
 .splash-glow {
-  position: absolute; width: 520px; height: 520px; border-radius: 50%;
+  position: absolute; width: 520px; height: 520px; border-radius: 50%; left: 50%; top: calc(var(--sh, 100vh) / 2); margin: -260px 0 0 -260px;
   background: radial-gradient(circle, rgba(123, 47, 247, 0.45), transparent 62%);
   animation: splash-glow-in 700ms ease-out both, splash-pulse 600ms ease-out 1150ms both; will-change: transform, opacity;
 }
-.splash-stage { position: relative; display: flex; flex-direction: column; align-items: center; }
+.splash-stage {
+  position: absolute; left: 50%; top: calc(var(--sh, 100vh) / 2); transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center;
+}
 .splash-wordwrap { position: relative; width: min(68vw, 300px); }
 .splash-word {
   position: relative; width: 100%; height: auto; display: block; transform: translateZ(0);
@@ -116,6 +123,10 @@ html.booting #root { visibility: hidden; }
       // It leaves once the animation has played AND the app is ready underneath.
       (function () {
         var el = document.getElementById('boot-splash');
+        // Measure the screen ONCE and lock the splash to that size in pixels. iPhone home-screen apps
+        // can re-measure the screen a moment after launch; with a fixed size the logo can't jump.
+        var sh = navigator.standalone ? Math.max(screen.height, window.innerHeight) : window.innerHeight;
+        el.style.setProperty('--sh', sh + 'px');
         var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
         var minMs = reduce ? 600 : 2350, start = Date.now(), appReady = false, gone = false;
         function finish() {
