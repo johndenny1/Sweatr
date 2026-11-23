@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -136,8 +137,14 @@ html.booting, html.booting body { overflow: hidden; height: 100%; }
           requestAnimationFrame(function () { el.classList.add('leaving'); });
           setTimeout(function () { el.remove(); }, 380);
         }
+        // App stylesheet (loaded without blocking the first paint, see vite.config.js)
+        function cssReady() {
+          var l = document.querySelector('link[data-app-css]');
+          return !l || l.media === 'all';
+        }
+        window.__sweatrCssReady = function () { check(); };
         function check() {
-          if (!appReady) return;
+          if (!appReady || !cssReady()) return;
           var wait = minMs - 300 - (Date.now() - start);
           if (wait > 0) setTimeout(finish, wait); else finish();
         }
