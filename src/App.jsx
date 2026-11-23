@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEdgeSwipeBack } from './lib/swipe.js';
 import { supabase } from './lib/supabase.js';
 import Auth from './components/Auth.jsx';
@@ -8,11 +8,14 @@ import ParlayBuilder from './components/ParlayBuilder.jsx';
 import ParlayView from './components/ParlayView.jsx';
 import GameView from './components/GameView.jsx';
 import BottomNav from './components/BottomNav.jsx';
+import Splash from './components/Splash.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
   const [ready, setReady] = useState(false);
+  const [splash, setSplash] = useState(true);
+  const endSplash = useCallback(() => setSplash(false), []);
   // view: list | new | profile | { parlay } | { game }
   const [view, setView] = useState({ name: 'list' });
 
@@ -60,12 +63,22 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [view]);
 
-  if (!ready) return <div className="center muted boot">SWEATR</div>;
-  if (!session) return <Auth />;
+  // The splash plays over whatever loads underneath, then fades into it.
+  const splashLayer = splash ? <Splash onDone={endSplash} /> : null;
+  if (!ready) return splashLayer || <div className="boot-blank" />;
+  if (!session)
+    return (
+      <>
+        <Auth />
+        {splashLayer}
+      </>
+    );
 
   const showNav = view.name === 'list' || view.name === 'profile';
 
   return (
+    <>
+    {splashLayer}
     <div className={`app ${showNav ? 'with-nav' : ''}`}>
       <header className="topbar">
         <button className="brand" onClick={() => go({ name: 'list' })} aria-label="Sweatr home">
@@ -111,5 +124,6 @@ export default function App() {
         />
       )}
     </div>
+    </>
   );
 }
