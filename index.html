@@ -116,7 +116,7 @@ html, body { margin: 0; background: #000; }
       (function () {
         var el = document.getElementById('boot-splash');
         var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var minMs = reduce ? 600 : 2600, start = Date.now(), appReady = false, gone = false;
+        var minMs = reduce ? 600 : 2350, start = Date.now(), appReady = false, gone = false;
         function finish() {
           if (gone) return;
           gone = true;
