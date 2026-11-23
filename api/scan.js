@@ -1,18 +1,24 @@
-// POST /api/scan  { image: <base64 jpeg>, today: "YYYY-MM-DD" }
-// Sends a bet-slip screenshot to Gemini (free tier) or Claude and returns the legs it reads off it.
+// POST /api/scan  { images: [<base64 jpeg>, …] (or image), today: "YYYY-MM-DD" }
+// Sends one or more screenshots of the same bet slip to Gemini (free tier) or Claude and returns the legs it reads off it.
 // Matching those legs to real games/players happens in the browser (src/lib/scan.js).
 
 import { requireUser } from './_auth.js';
 import { admin, hasAdmin, sign, sha256 } from './_admin.js';
 import { legFingerprint } from '../src/lib/fingerprint.js';
+import { dedupeLegs } from './_dedupe.js';
 
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
 NFL / college football (cfb): passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), int (interceptions thrown)
 MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
-function prompt(today) {
-  return `This is a screenshot of a sports betting slip (parlay). Today is ${today}.
+function prompt(today, count = 1) {
+  const intro =
+    count > 1
+      ? `These ${count} screenshots are all of the SAME sports betting slip (parlay), in order, taken while scrolling because it was too long for one screen. They usually overlap: the bottom of one screenshot shows the same legs as the top of the next. Today is ${today}.
+Combine them into ONE slip. List every leg exactly ONCE, in slip order, even if it shows up in two screenshots. If a leg is cut off at the edge of one screenshot but complete in another, use the complete one. The stake, odds and payout may only appear in one of the screenshots.`
+      : `This is a screenshot of a sports betting slip (parlay). Today is ${today}.`;
+  return `${intro}
 Read every leg and return ONLY a JSON object, no other text, in this shape:
 
 {
@@ -62,14 +68,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in Vercel' });
     }
 
-    const { image, today } = req.body || {};
-    if (typeof image !== 'string' || image.length < 100) return res.status(400).json({ error: 'No image received' });
-    if (image.length > 5_500_000) return res.status(413).json({ error: 'Image too large' });
+    const { image, images: list, today } = req.body || {};
+    const images = (Array.isArray(list) ? list : [image]).filter((x) => typeof x === 'string' && x.length >= 100);
+    if (!images.length) return res.status(400).json({ error: 'No image received' });
+    if (images.length > MAX_IMAGES) return res.status(400).json({ error: `Up to ${MAX_IMAGES} screenshots per slip` });
+    if (images.reduce((n, x) => n + x.length, 0) > 4_200_000) return res.status(413).json({ error: 'Screenshots too large' });
     const day = /^\d{4}-\d{2}-\d{2}$/.test(today || '') ? today : new Date().toISOString().slice(0, 10);
 
     const result = geminiKey
-      ? await askGemini(geminiKey, image, prompt(day))
-      : await askClaude(anthropicKey, image, prompt(day));
+      ? await askGemini(geminiKey, images, prompt(day, images.length))
+      : await askClaude(anthropicKey, images, prompt(day, images.length));
     if (result.error) return res.status(502).json({ error: result.error });
 
     const text = result.text;
@@ -89,18 +97,22 @@ export default async function handler(req, res) {
       const dec = payout / stake;
       odds = dec >= 2 ? `+${Math.round((dec - 1) * 100)}` : `-${Math.round(100 / (dec - 1))}`;
     }
-    const legs = Array.isArray(parsed.legs) ? parsed.legs : [];
+    // Overlapping screenshots: never keep the same leg twice, even if the AI repeats it
+    const legs = dedupeLegs(Array.isArray(parsed.legs) ? parsed.legs : []);
 
     // Signed receipt of exactly what was read off the image. /api/save checks the
     // saved slip against it, so stake, odds and lines can't be changed afterwards.
-    const imageHash = sha256(image);
+    // One screenshot: its own hash (same as before). Several: a hash of all of them, plus each one's
+    // hash so a screenshot already used for another slip is still caught.
+    const hashes = images.map((x) => sha256(x));
+    const imageHash = hashes.length === 1 ? hashes[0] : sha256(hashes.slice().sort().join('|'));
     let duplicate = false;
     if (hasAdmin) {
-      const { data } = await admin.from('parlays').select('id').eq('image_hash', imageHash).limit(1);
+      const { data } = await admin.from('parlays').select('id').in('image_hash', [...new Set([imageHash, ...hashes])]).limit(1);
       duplicate = Boolean(data?.length);
     }
     const token = hasAdmin
-      ? sign({ u: user.id, h: imageHash, s: stake, o: odds, l: legs.map(legFingerprint), t: Date.now() })
+      ? sign({ u: user.id, h: imageHash, hs: hashes.length > 1 ? hashes : undefined, s: stake, o: odds, l: legs.map(legFingerprint), t: Date.now() })
       : null;
 
     return res.status(200).json({ stake, odds, legs, token, duplicate });
@@ -109,37 +121,39 @@ export default async function handler(req, res) {
   }
 }
 
+const MAX_IMAGES = 4;
+
 // Google Gemini — has a free tier (free-tier requests may be used by Google to improve its products).
 // Free models get overloaded at busy times, so retry once and then fall back to other free models.
 const GEMINI_FALLBACKS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function geminiOnce(key, model, image, text, fast = true) {
-  const generationConfig = { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 2048 };
+async function geminiOnce(key, model, images, text, fast = true) {
+  const generationConfig = { responseMimeType: 'application/json', temperature: 0, maxOutputTokens: 4096 };
   // Reading a slip doesn't need the model to "think" first; skipping it saves seconds.
   if (fast) generationConfig.thinkingConfig = /2\.5/.test(model) ? { thinkingBudget: 0 } : { thinkingLevel: 'minimal' };
   const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ inline_data: { mime_type: 'image/jpeg', data: image } }, { text }] }],
+      contents: [{ parts: [...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } })), { text }] }],
       generationConfig,
     }),
   });
   const data = await r.json().catch(() => ({}));
   // Model doesn't support that thinking setting: retry once without it.
-  if (!r.ok && fast && r.status === 400 && /thinking/i.test(data?.error?.message || '')) return geminiOnce(key, model, image, text, false);
+  if (!r.ok && fast && r.status === 400 && /thinking/i.test(data?.error?.message || '')) return geminiOnce(key, model, images, text, false);
   if (!r.ok) return { status: r.status, error: data?.error?.message || `Gemini returned ${r.status}` };
   const parts = data?.candidates?.[0]?.content?.parts || [];
   return { text: parts.map((p) => p.text || '').join('') };
 }
 
-async function askGemini(key, image, text) {
+async function askGemini(key, images, text) {
   const models = [...new Set([process.env.GEMINI_MODEL, ...GEMINI_FALLBACKS].filter(Boolean))];
   let last = null;
   for (const [i, model] of models.entries()) {
     for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {
-      const result = await geminiOnce(key, model, image, text);
+      const result = await geminiOnce(key, model, images, text);
       if (result.text) return result;
       last = result;
       // Busy / rate-limited / server error → try again or move on. 404 = model name not available → move on.
@@ -156,18 +170,18 @@ async function askGemini(key, image, text) {
 }
 
 // Anthropic Claude — paid, used if no Gemini key is set.
-async function askClaude(key, image, text) {
+async function askClaude(key, images, text) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5',
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [
         {
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
+            ...images.map((data) => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } })),
             { type: 'text', text },
           ],
         },

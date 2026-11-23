@@ -49,7 +49,8 @@ export default async function handler(req, res) {
     // 3. Screenshot reuse + duplicate slip
     let imageHash = fromScan ? receipt.h : null;
     if (imageHash) {
-      const { data } = await admin.from('parlays').select('id').eq('image_hash', imageHash).limit(1);
+      const hashes = [...new Set([imageHash, ...(Array.isArray(receipt.hs) ? receipt.hs : [])])];
+      const { data } = await admin.from('parlays').select('id').in('image_hash', hashes).limit(1);
       if (data?.length) {
         notes.push('This screenshot was already used');
         imageHash = null;

@@ -27,8 +27,13 @@ export function imageToBase64(file, maxSide = 1280, quality = 0.8) {
 
 // ---------- 2. Ask the server (Claude) to read the slip ----------
 
-export async function readSlip(file) {
-  const image = await imageToBase64(file);
+export const MAX_SHOTS = 4;
+
+// One file or several screenshots of the same (long) slip. Overlapping legs are merged on the server.
+export async function readSlip(fileOrFiles) {
+  const files = (Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles]).slice(0, MAX_SHOTS);
+  // Several tall screenshots: keep each a bit smaller so the upload stays fast
+  const images = await Promise.all(files.map((f) => imageToBase64(f, files.length > 1 ? 1600 : 1280, files.length > 2 ? 0.72 : 0.8)));
   const { data } = await supabase.auth.getSession();
   const res = await fetch('/api/scan', {
     method: 'POST',
@@ -36,7 +41,7 @@ export async function readSlip(file) {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${data?.session?.access_token || ''}`,
     },
-    body: JSON.stringify({ image, today: todayISO() }),
+    body: JSON.stringify({ images, today: todayISO() }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Scan failed (${res.status})`);
