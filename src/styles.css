@@ -566,3 +566,14 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
   border: 3px solid var(--bg); box-shadow: 0 2px 10px rgba(123, 47, 247, 0.5);
 }
 .avatar-cam .spinner { width: 14px; height: 14px; border-color: rgba(255,255,255,0.35); border-top-color: #fff; }
+
+/* ---------- page transitions ---------- */
+.page { will-change: transform, opacity; }
+.page-forward { animation: page-in-right 210ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.page-back { animation: page-in-left 210ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes page-in-right { from { transform: translateX(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes page-in-left { from { transform: translateX(-36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .page-forward, .page-back { animation: page-fade 120ms ease-out both; }
+  @keyframes page-fade { from { opacity: 0; } to { opacity: 1; } }
+}

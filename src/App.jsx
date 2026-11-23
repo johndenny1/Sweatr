@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useEdgeSwipeBack } from './lib/swipe.js';
 import { supabase } from './lib/supabase.js';
 import Auth from './components/Auth.jsx';
 import Home from './components/Home.jsx';
@@ -28,6 +29,33 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Page transitions: deeper pages slide in from the right, going back slides in from the left.
+  const DEPTH = { list: 0, profile: 0, new: 1, parlay: 1, game: 2 };
+  const TAB = { list: 0, profile: 1 };
+  const [anim, setAnim] = useState({ key: 0, dir: 'none' });
+  const viewRef = useRef(view);
+
+  function go(next) {
+    const prev = viewRef.current;
+    let dir = 'forward';
+    if (DEPTH[next.name] < DEPTH[prev.name]) dir = 'back';
+    else if (DEPTH[next.name] === DEPTH[prev.name] && next.name in TAB && prev.name in TAB)
+      dir = TAB[next.name] < TAB[prev.name] ? 'back' : 'forward';
+    if (next.name === prev.name && next.id === prev.id) dir = 'none';
+    viewRef.current = next;
+    setAnim((a) => ({ key: a.key + 1, dir }));
+    setView(next);
+  }
+
+  // Where "back" goes from each page (used by the edge swipe).
+  function backTarget(v) {
+    if (v.name === 'game') return { name: 'parlay', id: v.parlayId };
+    if (v.name === 'parlay' || v.name === 'new') return { name: 'list' };
+    return null;
+  }
+  const pageRef = useRef(null);
+  useEdgeSwipeBack(pageRef, () => backTarget(viewRef.current), (target) => go(target));
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
@@ -35,7 +63,6 @@ export default function App() {
   if (!ready) return <div className="center muted boot">SWEATR</div>;
   if (!session) return <Auth />;
 
-  const go = (v) => setView(v);
   const showNav = view.name === 'list' || view.name === 'profile';
 
   return (
@@ -45,7 +72,7 @@ export default function App() {
           <img src="/wordmark.svg" alt="Sweatr" className="wordmark-img" />
         </button>
       </header>
-      <main>
+      <main ref={pageRef} key={anim.key} className={`page page-${anim.dir}`}>
         {view.name === 'list' && (
           <Home
             user={user}
