@@ -4,6 +4,7 @@ import { describeLeg } from '../lib/evaluate.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
 import LegForm from './LegForm.jsx';
 import Scanner from './Scanner.jsx';
+import { legFingerprint, legsMatchScan, sameOdds, sameStake } from '../lib/fingerprint.js';
 
 export default function ParlayBuilder({ onCancel, onSaved }) {
   const [name, setName] = useState('');
@@ -14,32 +15,58 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [unmatched, setUnmatched] = useState([]);
+  const [scan, setScan] = useState(null); // { token, stake, odds, prints, duplicate }
 
-  function onScan({ matched, unmatched, stake: s, odds: o }) {
+  function onScan({ matched, unmatched, stake: s, odds: o, rawLegs, token, duplicate }) {
     setError('');
-    setLegs((prev) => [...prev, ...matched]);
+    // A new scan replaces the slip, so the receipt and legs always line up.
+    setLegs(matched);
     setUnmatched(unmatched);
-    if (s != null && stake === '') setStake(String(s));
-    if (o && !odds) setOdds(o);
+    setScan({ token, stake: s, odds: o, prints: (rawLegs || []).map(legFingerprint), duplicate });
+    setStake(s != null ? String(s) : '');
+    setOdds(o || '');
     if (!matched.length) setAdding(true);
   }
+
+  // Preview of what the server will decide (the server re-checks everything, plus kickoff times).
+  let verifyNote = null;
+  if (!scan) verifyNote = 'Added by hand';
+  else if (!scan.token) verifyNote = 'Verification is off (server key missing)';
+  else if (scan.duplicate) verifyNote = 'This screenshot was already used';
+  else if (legs.length < scan.prints.length) verifyNote = `Add the ${scan.prints.length - legs.length} unmatched leg${scan.prints.length - legs.length === 1 ? '' : 's'} to verify`;
+  else if (!legsMatchScan(legs, scan.prints)) verifyNote = "Legs don't match the slip";
+  else if (scan.stake == null) verifyNote = "Stake wasn't readable on the slip";
+  else if (!sameStake(stake, scan.stake)) verifyNote = "Stake doesn't match the slip";
+  else if (!sameOdds(odds, scan.odds)) verifyNote = "Odds don't match the slip";
 
   async function save() {
     setSaving(true);
     setError('');
-    const { data, error } = await supabase
-      .from('parlays')
-      .insert({
-        name: name.trim() || `${legs.length}-leg parlay`,
-        stake: stake === '' ? null : Number(stake),
-        odds: odds.trim() || null,
-        legs,
-      })
-      .select('id')
-      .single();
-    setSaving(false);
-    if (error) return setError(error.message);
-    onSaved(data.id);
+    const payload = {
+      name: name.trim() || `${legs.length}-leg parlay`,
+      stake: stake === '' ? null : Number(stake),
+      odds: odds.trim() || null,
+      legs,
+    };
+    try {
+      const { data: auth } = await supabase.auth.getSession();
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth?.session?.access_token || ''}` },
+        body: JSON.stringify({ ...payload, token: scan?.token || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) return onSaved(body.id);
+      if (!body.fallback) throw new Error(body.error || `Save failed (${res.status})`);
+      // Server verification not set up yet: save directly (always Unverified).
+      const { data, error } = await supabase.from('parlays').insert(payload).select('id').single();
+      if (error) throw error;
+      onSaved(data.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const win = toWin(stake, odds);
@@ -72,6 +99,17 @@ export default function ParlayBuilder({ onCancel, onSaved }) {
             {legs.length} leg{legs.length === 1 ? '' : 's'}
           </span>
         </div>
+
+        {legs.length > 0 &&
+          (verifyNote ? (
+            <div className="verify-line off">
+              <span className="vbadge off">Unverified</span> {verifyNote}
+            </div>
+          ) : (
+            <div className="verify-line on">
+              <span className="vbadge on">✓ Verified</span> if saved before the first game starts
+            </div>
+          ))}
 
         <div className="ticket-legs">
           {legs.length === 0 && <div className="muted small">Scanned or added legs land here.</div>}

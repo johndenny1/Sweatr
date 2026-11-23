@@ -30,7 +30,4 @@ create policy "delete own parlays" on public.parlays
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on public.parlays to authenticated;
 
--- Results, so winnings and your record add up over time.
-alter table public.parlays add column if not exists status text default 'pending';
-alter table public.parlays add column if not exists payout numeric;
-alter table public.parlays add column if not exists settled_at timestamptz;
+-- Then run supabase/verification.sql for results + slip verification.

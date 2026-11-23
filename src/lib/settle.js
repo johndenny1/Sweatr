@@ -4,7 +4,6 @@
 import { supabase } from './supabase.js';
 import { getBox } from './api.js';
 import { evaluateLeg, parlayStatus } from './evaluate.js';
-import { payoutFor } from './money.js';
 
 const DONE = new Set(['won', 'lost']);
 
@@ -39,15 +38,25 @@ export async function refreshStatuses(parlays) {
   return out;
 }
 
+// Ask the server to grade and record the result (users can't write it directly).
 export async function saveResult(parlay, status) {
-  if (parlay.status === status) return;
-  const payout = status === 'won' ? payoutFor(parlay.stake, parlay.odds) ?? null : 0;
-  parlay.status = status;
-  parlay.payout = payout;
-  // Ignore errors (e.g. the status columns haven't been added yet).
-  await supabase
-    .from('parlays')
-    .update({ status, payout, settled_at: new Date().toISOString() })
-    .eq('id', parlay.id)
-    .then(() => {}, () => {});
+  if (parlay.status === status || parlay._settling) return;
+  parlay._settling = true;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const res = await fetch('/api/settle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` },
+      body: JSON.stringify({ id: parlay.id }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (body.status === 'won' || body.status === 'lost') {
+      parlay.status = body.status;
+      parlay.payout = body.payout;
+    }
+  } catch {
+    // try again next time the slip is viewed
+  } finally {
+    parlay._settling = false;
+  }
 }

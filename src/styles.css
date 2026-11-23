@@ -348,3 +348,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 .builder { padding-bottom: 24px; }
 .sticky-save { margin: 0 -16px; padding: 28px 16px 4px; background: linear-gradient(to bottom, transparent, var(--bg) 45%); }
 .sticky-save .primary:disabled { opacity: 1; background: #1d1430; color: var(--muted); box-shadow: none; }
+
+/* ---------- verification ---------- */
+.vbadge { display: inline-flex; align-items: center; gap: 4px; font-family: var(--block); text-transform: uppercase; font-size: 0.62rem; letter-spacing: 0.05em; padding: 3px 7px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
+.vbadge.on { background: rgba(47, 227, 154, 0.15); color: var(--won); border: 1px solid rgba(47, 227, 154, 0.4); }
+.vbadge.off { background: rgba(154, 143, 176, 0.12); color: var(--muted); border: 1px solid var(--line); }
+.vbadge.sm { font-size: 0.58rem; padding: 2px 5px; }
+.verify-line { font-size: 0.8rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.verify-line .vbadge { margin-left: 0; }
+.verify-line.off { color: var(--muted); }
+.verify-line.on { color: var(--text); }
+.verify-foot { margin: -4px 0 0; }

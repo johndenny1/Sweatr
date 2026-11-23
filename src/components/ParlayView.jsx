@@ -93,9 +93,15 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
 
       <div className={`card hero status-${overall}`}>
         <div className="row between">
-          <h2>{parlay.name}</h2>
+          <h2>
+            {parlay.name}
+            {parlay.verified ? <span className="vbadge on">✓ Verified</span> : <span className="vbadge off">Unverified</span>}
+          </h2>
           <span className={`pill status-${overall}`}>{STATUS_TEXT[overall]}</span>
         </div>
+        {!parlay.verified && parlay.verify_note && (
+          <div className="muted small">Not counted in stats · {parlay.verify_note}</div>
+        )}
         <div className="muted small">
           {hits}/{parlay.legs.length} legs hit
           {parlay.odds ? ` · ${parlay.odds}` : ''}
@@ -169,9 +175,13 @@ export default function ParlayView({ id, onBack, onOpenGame }) {
         {allFinal ? 'All games final' : `Auto-refreshes every ${REFRESH_MS / 1000}s`}
         {updated ? ` · updated ${updated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}
       </p>
-      <button className="link danger center" onClick={remove}>
-        Delete parlay
-      </button>
+      {parlay.verified ? (
+        <p className="muted small center">Verified slips stay on your record and can't be deleted.</p>
+      ) : (
+        <button className="link danger center" onClick={remove}>
+          Delete slip
+        </button>
+      )}
     </div>
   );
 }

@@ -36,7 +36,10 @@ function Ticket({ parlay, status, onOpen }) {
     <button className={`ticket ticket-${status}`} onClick={onOpen}>
       <div className="ticket-top">
         <div>
-          <div className="ticket-name">{parlay.name}</div>
+          <div className="ticket-name">
+            {parlay.name}
+            {parlay.verified ? <span className="vbadge on sm">✓</span> : <span className="vbadge off sm">Unverified</span>}
+          </div>
           <div className="ticket-sub">
             {leagues.map((l) => (
               <span key={l} className="league-tag">
@@ -186,6 +189,12 @@ export default function Home({ user, onNew, onOpen, onProfile }) {
           </div>
         )}
       </div>
+
+      {record.unverified > 0 && (
+        <p className="muted small verify-foot">
+          Stats count verified slips only · {record.unverified} unverified slip{record.unverified === 1 ? '' : 's'} not counted
+        </p>
+      )}
 
       <div className="chips scroll-x">
         {FILTERS.map((f) => (

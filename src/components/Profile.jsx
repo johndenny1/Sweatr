@@ -77,7 +77,7 @@ export default function Profile({ user, onUserChange }) {
         <div className="bank-label">All-time profit</div>
         <div className={`bank-net ${r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : ''}`}>{fmtMoney(r.net, { sign: true })}</div>
         <div className="muted small">
-          {fmtMoney(r.returned)} returned on {fmtMoney(r.staked)} wagered
+          {fmtMoney(r.returned)} returned on {fmtMoney(r.staked)} wagered · verified slips only
         </div>
       </div>
 

@@ -3,7 +3,9 @@ import { payoutFor } from './money.js';
 import { LEAGUE_LIST } from './stats.js';
 
 export function computeRecord(parlays, statuses = {}) {
-  const withStatus = parlays.map((p) => ({ ...p, status: statuses[p.id] || p.status || 'pending' }));
+  // Only verified slips count toward the record and money. Unverified ones are tracked, not counted.
+  const all = parlays.map((p) => ({ ...p, status: statuses[p.id] || p.status || 'pending' }));
+  const withStatus = all.filter((p) => p.verified === true);
   const settled = withStatus
     .filter((p) => p.status === 'won' || p.status === 'lost')
     .sort((a, b) => new Date(b.settled_at || b.created_at) - new Date(a.settled_at || a.created_at));
@@ -55,5 +57,6 @@ export function computeRecord(parlays, statuses = {}) {
     form: settled.slice(0, 10).map((p) => p.status),
     leagues,
     avgLegs: withStatus.length ? totalLegs / withStatus.length : 0,
+    unverified: all.length - withStatus.length,
   };
 }

@@ -3,6 +3,8 @@
 // Matching those legs to real games/players happens in the browser (src/lib/scan.js).
 
 import { requireUser } from './_auth.js';
+import { admin, hasAdmin, sign, sha256 } from './_admin.js';
+import { legFingerprint } from '../src/lib/fingerprint.js';
 
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
@@ -47,7 +49,8 @@ Rules:
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
   try {
-    if (!(await requireUser(req, res))) return;
+    const user = await requireUser(req, res);
+    if (!user) return;
 
     const geminiKey = process.env.GEMINI_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
@@ -74,11 +77,23 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: "Couldn't read that slip. Try a clearer screenshot." });
     }
 
-    return res.status(200).json({
-      stake: typeof parsed.stake === 'number' ? parsed.stake : null,
-      odds: typeof parsed.odds === 'string' ? parsed.odds : null,
-      legs: Array.isArray(parsed.legs) ? parsed.legs : [],
-    });
+    const stake = typeof parsed.stake === 'number' ? parsed.stake : null;
+    const odds = typeof parsed.odds === 'string' ? parsed.odds : null;
+    const legs = Array.isArray(parsed.legs) ? parsed.legs : [];
+
+    // Signed receipt of exactly what was read off the image. /api/save checks the
+    // saved slip against it, so stake, odds and lines can't be changed afterwards.
+    const imageHash = sha256(image);
+    let duplicate = false;
+    if (hasAdmin) {
+      const { data } = await admin.from('parlays').select('id').eq('image_hash', imageHash).limit(1);
+      duplicate = Boolean(data?.length);
+    }
+    const token = hasAdmin
+      ? sign({ u: user.id, h: imageHash, s: stake, o: odds, l: legs.map(legFingerprint), t: Date.now() })
+      : null;
+
+    return res.status(200).json({ stake, odds, legs, token, duplicate });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
