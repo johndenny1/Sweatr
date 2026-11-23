@@ -90,7 +90,22 @@ export function normalizeSummary(data, eventId) {
       }
     }
   }
+  if (game) game.dstTd = dstTouchdowns(data, game);
   return { game, players: [...byId.values()] };
+}
+
+// Defense / special teams touchdowns per team, from the scoring plays: every touchdown that
+// isn't a rushing, passing or receiving one (pick-sixes, fumble returns, kick/punt returns, blocks).
+function dstTouchdowns(data, game) {
+  const out = { [game.home]: 0, [game.away]: 0 };
+  for (const p of data?.scoringPlays || []) {
+    const text = `${p.type?.text || ''} ${p.type?.abbreviation || ''}`;
+    if (!/touchdown|\btd\b/i.test(text) || /rush|pass|receiv/i.test(text)) continue;
+    const tid = String(p.team?.id || '');
+    const abbr = p.team?.abbreviation || (tid === game.homeId ? game.home : tid === game.awayId ? game.away : null);
+    if (abbr && abbr in out) out[abbr]++;
+  }
+  return out;
 }
 
 export function normalizeRoster(data, teamAbbr) {

@@ -6,10 +6,10 @@ export function normalizeLegShape(leg) {
   const type = String(leg.type || '').toLowerCase();
   const side = leg.side === 'under' ? 'under' : 'over';
   let line = Number(leg.line);
-  if (type === 'prop' && !Number.isFinite(line)) line = 0.5;
+  if ((type === 'prop' || type === 'teamprop') && !Number.isFinite(line)) line = 0.5;
   return {
     type,
-    side: type === 'prop' || type === 'total' ? side : '',
+    side: type === 'prop' || type === 'teamprop' || type === 'total' ? side : '',
     line: type === 'moneyline' || !Number.isFinite(line) ? '' : Math.round(line * 10) / 10,
   };
 }

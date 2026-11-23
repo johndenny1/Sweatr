@@ -19,7 +19,7 @@ export function legKey(leg) {
     type,
     type === 'total' ? [norm(leg.team), norm(leg.opponent)].sort().join('/') : who(leg),
     String(leg.stat || '').toLowerCase(),
-    type === 'prop' || type === 'total' ? (leg.side === 'under' ? 'u' : 'o') : '',
+    type === 'prop' || type === 'teamprop' || type === 'total' ? (leg.side === 'under' ? 'u' : 'o') : '',
     Number.isFinite(line) ? Math.round(line * 10) / 10 : '',
   ].join('|');
 }

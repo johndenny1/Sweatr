@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js';
 import { getGames, getRoster, todayISO } from './api.js';
 import { leagueById } from './stats.js';
+import { normalizeTeamProp } from './teamProps.js';
 
 // ---------- 1. Shrink the screenshot so it uploads fast and fits Vercel's limit ----------
 
@@ -134,13 +135,25 @@ export async function resolveLegs(rawLegs) {
     return null;
   }
 
+  // "CIN Bengals D/ST" → CIN (by abbreviation or team name)
+  function teamInText(g, text) {
+    const t = norm(text);
+    if (!t) return null;
+    const words = t.split(' ').filter((w) => w !== 'yes' && w !== 'no');
+    for (const [abbr, names] of [[g.home, g.homeNames], [g.away, g.awayNames]]) {
+      if (words.some((w) => sameTeam(w, abbr))) return abbr;
+      if ((names || []).some((n) => n && t.includes(norm(n)))) return abbr;
+    }
+    return null;
+  }
+
   // Every leg is matched at the same time, and each leg checks all candidate dates at once.
   const results = await Promise.all(rawLegs.map((raw) => matchOne(raw)));
   const matched = results.filter((r) => r.leg).map((r) => r.leg);
   const unmatched = results.filter((r) => r.miss).map((r) => r.miss);
 
   async function matchOne(rawIn) {
-    let raw = rawIn;
+    let raw = normalizeTeamProp(rawIn);
     const league = String(raw.league || '').toLowerCase();
     const label = raw.raw || [raw.player, raw.team, raw.stat, raw.line].filter(Boolean).join(' ');
     if (!leagueById(league)) return { miss: { label, reason: 'Unknown league' } };
@@ -157,6 +170,7 @@ export async function resolveLegs(rawLegs) {
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team)) &&
           (!raw.opponent || [g.home, g.away].some((t) => sameTeam(t, raw.opponent)))) ||
         slate.find((g) => matchupHits(g, raw.matchup) === 1) ||
+        (raw.type === 'teamprop' ? slate.find((g) => teamInText(g, raw.player || raw.raw)) : null) ||
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team) || sameTeam(t, raw.opponent))) ||
         null;
       if (game) date = dates[i];
@@ -188,7 +202,7 @@ export async function resolveLegs(rawLegs) {
     };
     const line = Number(raw.line);
     const side = raw.side === 'under' ? 'under' : 'over';
-    const pickTeam = [game.home, game.away].find((t) => sameTeam(t, raw.team));
+    const pickTeam = [game.home, game.away].find((t) => sameTeam(t, raw.team)) || teamInText(game, raw.player || raw.raw);
 
     if (raw.type === 'prop') {
       const stat = leagueById(league).stats.find((s) => s.id === raw.stat);
@@ -207,6 +221,10 @@ export async function resolveLegs(rawLegs) {
           line: Number.isFinite(line) ? line : 0.5,
         },
       };
+    }
+    if (raw.type === 'teamprop') {
+      if (!pickTeam) return { miss: { label, reason: "Couldn't tell which team's D/ST" } };
+      return { leg: { ...base, type: 'teamprop', pick: pickTeam, stat: 'dsttd', side, line: Number.isFinite(line) ? line : 0.5 } };
     }
     if (raw.type === 'total' && Number.isFinite(line)) return { leg: { ...base, type: 'total', side, line } };
     if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) return { leg: { ...base, type: 'spread', pick: pickTeam, line } };

@@ -6,10 +6,11 @@ import { requireUser } from './_auth.js';
 import { admin, hasAdmin, sign, sha256 } from './_admin.js';
 import { legFingerprint } from '../src/lib/fingerprint.js';
 import { dedupeLegs } from './_dedupe.js';
+import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
-NFL / college football (cfb): passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), int (interceptions thrown)
+NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), int (interceptions thrown)
 MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
 function prompt(today, count = 1) {
@@ -28,7 +29,7 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
   "legs": [
     {
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
-      "type": "prop" | "moneyline" | "spread" | "total",
+      "type": "prop" | "teamprop" | "moneyline" | "spread" | "total",
       "player": string or null,     // full player name for props
       "matchup": string or null,    // the game this leg is listed under, exactly as printed (e.g. "MIL Bucks vs TOR Raptors")
       "team": string or null,       // abbreviation of the player's team (prop) or the picked team (moneyline/spread), ONLY if printed on the slip; never guess from memory
@@ -51,6 +52,8 @@ Rules:
 - College games are "cfb" (football) or "cbb" (basketball).
 - Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
+- "Yes" on a leg means side "over"; "No" means side "under" (e.g. "No · Bengals D/ST: 1+ touchdowns" = under 0.5).
+- A team defense / special teams touchdown leg ("D/ST", "Defense/ST", "defensive or return TD") is type "teamprop", stat "dsttd", team = that team's abbreviation, player null, line 0.5 for "1+".
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
 - If the image is not a bet slip, return {"stake": null, "odds": null, "payout": null, "legs": []}.`;
 }
@@ -98,7 +101,7 @@ export default async function handler(req, res) {
       odds = dec >= 2 ? `+${Math.round((dec - 1) * 100)}` : `-${Math.round(100 / (dec - 1))}`;
     }
     // Overlapping screenshots: never keep the same leg twice, even if the AI repeats it
-    const legs = dedupeLegs(Array.isArray(parsed.legs) ? parsed.legs : []);
+    const legs = dedupeLegs((Array.isArray(parsed.legs) ? parsed.legs : []).map(normalizeTeamProp));
 
     // Signed receipt of exactly what was read off the image. /api/save checks the
     // saved slip against it, so stake, odds and lines can't be changed afterwards.
