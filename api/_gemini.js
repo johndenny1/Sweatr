@@ -26,7 +26,7 @@ async function geminiOnce(key, model, images, text, fast = true, opts = {}) {
 }
 
 export async function askGemini(key, images, text, opts = {}) {
-  const models = [...new Set([process.env.GEMINI_MODEL, ...GEMINI_FALLBACKS].filter(Boolean))];
+  const models = opts.models || [...new Set([process.env.GEMINI_MODEL, ...GEMINI_FALLBACKS].filter(Boolean))];
   let last = null;
   for (const [i, model] of models.entries()) {
     for (let attempt = 0; attempt < (i === 0 ? 2 : 1); attempt++) {

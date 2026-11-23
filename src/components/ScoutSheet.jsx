@@ -6,34 +6,45 @@ import { americanToDecimal } from '../lib/money.js';
 const RATING_TEXT = { strong: 'Strong', okay: 'Okay', risky: 'Risky' };
 const OVERALL_TONE = { Strong: 'won', Decent: 'live', Shaky: 'warn', 'Long shot': 'lost' };
 
-async function fetchScout(legs, odds, stake) {
+async function fetchScout(payload) {
   const { data } = await supabase.auth.getSession();
   const res = await fetch('/api/scout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data?.session?.access_token || ''}` },
-    body: JSON.stringify({ legs, odds, stake }),
+    body: JSON.stringify(payload),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Scout failed');
   return body;
 }
 
-const STEPS = ['Pulling each player’s last 5 games', 'Checking injuries and news', 'Checking the weather', 'Writing your report'];
+const STEPS = ['Pulling recent games', 'Checking injuries and weather', 'Sizing it up'];
 
 // The report itself: fetches and shows the scout for a list of legs.
 export function ScoutReport({ legs, odds, stake }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [step, setStep] = useState(0);
+  const [full, setFull] = useState(null); // second pass: takes, reasons, summary
+  const [fullError, setFullError] = useState('');
 
   useEffect(() => {
     let alive = true;
     setResult(null);
+    setFull(null);
+    setFullError('');
     setError('');
     setStep(0);
-    const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 1600);
-    fetchScout(legs, odds, stake)
-      .then((r) => alive && setResult(r))
+    const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), 1200);
+    fetchScout({ legs, odds, stake })
+      .then((r) => {
+        if (!alive) return;
+        setResult(r);
+        // Start writing the details right away, so Go deeper is usually ready by the time you tap it
+        fetchScout({ mode: 'full', data: r.data, odds, ratings: r.report.legs.map((l) => ({ i: l.i, r: l.rating })) })
+          .then((f) => alive && setFull(f.report))
+          .catch((e) => alive && setFullError(e.message));
+      })
       .catch((e) => alive && setError(e.message))
       .finally(() => clearInterval(t));
     return () => {
@@ -45,7 +56,17 @@ export function ScoutReport({ legs, odds, stake }) {
 
   const [deep, setDeep] = useState(false);
   const dec = americanToDecimal(odds);
-  const report = result?.report;
+  const brief = result?.report;
+  // Merge: ratings/verdict from the fast pass, written details from the full pass
+  const report = brief && {
+    ...brief,
+    summary: full?.summary || '',
+    watch: full?.watch?.length ? full.watch : brief.watch,
+    legs: brief.legs.map((l) => {
+      const f = full?.legs.find((x) => x.i === l.i);
+      return { ...l, take: f?.take || '', reasons: f?.reasons || [] };
+    }),
+  };
   const data = result?.data;
   const count = (r) => report?.legs.filter((l) => l.rating === r).length || 0;
 
@@ -152,7 +173,11 @@ export function ScoutReport({ legs, odds, stake }) {
                       <span className="scout-leg-name">{d.desc}</span>
                       <span className={`scout-pill rate-${r.rating}`}>{RATING_TEXT[r.rating]}</span>
                     </div>
-                    <div className="scout-take">{r.take}</div>
+                    {r.take ? (
+                      <div className="scout-take">{r.take}</div>
+                    ) : (
+                      <div className="scout-take muted">{fullError ? 'Couldn’t write the details this time.' : 'Writing the details…'}</div>
+                    )}
                     {d.recent?.length > 0 && <LastFive recent={d.recent} line={Number(d.line)} side={d.side} />}
                     {d.news?.length > 0 && (
                       <div className="scout-news">

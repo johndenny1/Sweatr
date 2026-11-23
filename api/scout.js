@@ -11,6 +11,44 @@ export const config = { maxDuration: 60 };
 const RATINGS = ['strong', 'okay', 'risky'];
 const OVERALL = ['Strong', 'Decent', 'Shaky', 'Long shot'];
 
+// Faster models first: the scout writes short text, it doesn't need the big ones
+const FAST_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-flash'];
+
+// Only what the writer needs, so the prompt stays small (and quick)
+function compact(data) {
+  return {
+    games: data.games.map((g) => ({
+      matchup: g.matchup,
+      weather: g.weather,
+      indoor: g.indoor,
+      records: g.records,
+      out: g.injuries.map((x) => `${x.team} ${x.name} (${x.status}${x.detail ? `, ${x.detail}` : ''})`).slice(0, 10),
+    })),
+    legs: data.legs.map((l) => ({
+      i: l.i,
+      leg: l.desc,
+      game: l.game,
+      ...(l.recent ? { last5: l.recent.map((r) => r.value), hits: l.hits, games: l.games, avg: l.avg } : {}),
+      ...(l.injury ? { injury: `${l.injury.status}${l.injury.detail ? ` (${l.injury.detail})` : ''}` } : {}),
+      ...(l.news?.length ? { news: l.news.map((a) => a.headline) } : {}),
+      ...(l.teams ? { teams: l.teams.map((t) => ({ team: t.team, record: t.record, last5: t.last5, avgFor: t.avgFor, avgAgainst: t.avgAgainst })) } : {}),
+    })),
+  };
+}
+
+function briefPrompt(data, odds) {
+  const dec = americanToDecimal(odds);
+  const price = dec ? `The slip's odds are ${odds} (the book prices it around 1 in ${Math.round(dec)}).` : '';
+  return `You are the scout inside Sweatr, a bet-slip tracker. Give a FAST first read on this parlay. ${price}
+Data (last5 = the player's last 5 values, newest first, null = didn't play; hits = how many cleared the line):
+${JSON.stringify(compact(data))}
+
+Return ONLY JSON:
+{"overall":"Strong"|"Decent"|"Shaky"|"Long shot","headline":string,"watch":[string],"ratings":[{"i":number,"r":"strong"|"okay"|"risky"}]}
+
+Rules: headline max 12 words, casual and specific. watch = up to 3 short things to keep an eye on (weather, injuries, legs that depend on each other), each under 15 words. Use only facts in the data, no hit percentages. Props clearing 4-5 of 5 with no injury lean strong, 2-3 okay, 0-1 or an injury tag risky. 10+ legs is usually a Long shot. Rate every leg.`;
+}
+
 function prompt(data, odds) {
   const dec = americanToDecimal(odds);
   const price = dec ? `The slip's odds are ${odds}, so the book is pricing it around 1 in ${Math.round(dec)}.` : '';
@@ -18,7 +56,7 @@ function prompt(data, odds) {
 
 Here is everything we know, as JSON. "recent" lists the player's last 5 games (value null = didn't play). "hits" = how many of those cleared the line on the side they picked. Team legs show each team's last 5 results and scoring averages. Injuries and weather come from the game page.
 
-${JSON.stringify(data)}
+${JSON.stringify(compact(data))}
 
 Write the report as ONLY a JSON object:
 {
@@ -85,34 +123,65 @@ function clean(ai, data) {
   };
 }
 
+function readJson(text) {
+  if (!text) return null;
+  const t = String(text).replace(/```(?:json)?/gi, '');
+  try {
+    return JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' });
   try {
     const user = await requireUser(req, res);
     if (!user) return;
-    const { legs, odds } = req.body || {};
+    const { legs, odds, mode, data: given, ratings } = req.body || {};
+
+    // Second pass: the full write-up, from the data the first pass already gathered
+    if (mode === 'full') {
+      if (!given || !Array.isArray(given.legs)) return res.status(400).json({ error: 'Missing data' });
+      let full = null;
+      if (process.env.GEMINI_API_KEY) {
+        const keep = Array.isArray(ratings) && ratings.length ? `\nKeep these ratings exactly: ${JSON.stringify(ratings)}` : '';
+        const r = await askGemini(process.env.GEMINI_API_KEY, [], prompt(given, odds) + keep, { temperature: 0.4, models: FAST_MODELS });
+        full = readJson(r.text);
+      }
+      return res.status(200).json({ report: clean(full, given) });
+    }
+
     if (!Array.isArray(legs) || !legs.length || legs.length > 25) return res.status(400).json({ error: 'Add some legs first' });
     const ok = legs.every((l) => l && /^\d{1,12}$/.test(String(l.gameId)) && ['nfl', 'nba', 'mlb', 'cfb', 'cbb'].includes(l.league));
     if (!ok) return res.status(400).json({ error: 'Some legs are missing their game' });
 
+    const t0 = Date.now();
     const data = await gatherScout(legs);
+    const t1 = Date.now();
 
-    let report = null;
+    // First pass: verdict, headline, watch list and a rating per leg (short output = fast)
+    let brief = null;
     if (process.env.GEMINI_API_KEY) {
-      const r = await askGemini(process.env.GEMINI_API_KEY, [], prompt(data, odds), {
-        temperature: 0.4,
+      const r = await askGemini(process.env.GEMINI_API_KEY, [], briefPrompt(data, odds), {
+        temperature: 0.3,
+        maxOutputTokens: 1500,
+        models: FAST_MODELS,
         busyMessage: 'The scout is busy right now. Try again in a minute.',
       });
-      if (r.text) {
-        const t = r.text.replace(/```(?:json)?/gi, '');
-        try {
-          report = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
-        } catch {
-          report = null;
-        }
-      }
+      brief = readJson(r.text);
     }
-    return res.status(200).json({ report: clean(report, data), data });
+    const asReport = brief
+      ? {
+          overall: brief.overall,
+          headline: brief.headline,
+          watch: brief.watch,
+          legs: (brief.ratings || []).map((x) => ({ i: x.i, rating: x.r })),
+        }
+      : null;
+    const report = clean(asReport, data);
+    report.partial = true; // takes and reasons come from the second pass
+    return res.status(200).json({ report, data, ms: { data: t1 - t0, ai: Date.now() - t1 } });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
