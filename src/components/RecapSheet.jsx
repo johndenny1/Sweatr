@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { drawRecap } from '../lib/recap.js';
 
 // Full-screen sheet: builds the recap card, then share it (Instagram, TikTok, Messages…) or save it.
@@ -23,6 +24,15 @@ export default function RecapSheet({ parlay, rows, overall, onClose }) {
 
   useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
 
+  // Lock the page behind the sheet so it can't scroll or show through
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   const fileName = `sweatr-${(parlay.name || 'recap').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.png`;
   const file = blob ? new File([blob], fileName, { type: 'image/png' }) : null;
   const canShare = file && navigator.canShare?.({ files: [file] });
@@ -35,21 +45,30 @@ export default function RecapSheet({ parlay, rows, overall, onClose }) {
     }
   }
 
-  return (
+  // Portal to <body>: the page wrapper animates with transform, which would trap a fixed sheet inside it
+  return createPortal(
     <div className="recap-sheet" role="dialog" aria-label="Share recap">
       <div className="recap-top">
-        <button className="link" onClick={onClose}>
-          Close
+        <button className="recap-x" onClick={onClose} aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
-        <div className="label">Sweat recap</div>
-        <span style={{ width: 44 }} />
+        <div className="recap-title">
+          <div className="recap-kicker">Share your slip</div>
+          <h2>Sweat Recap</h2>
+        </div>
+        <span className="recap-x-spacer" />
       </div>
       <div className="recap-preview">
         {url ? <img src={url} alt="Recap card for this slip" /> : <div className="recap-loading">{error || 'Building your recap…'}</div>}
       </div>
       <div className="recap-actions">
         {canShare ? (
-          <button className="primary big grow" onClick={share} disabled={!file}>
+          <button className="primary big grow recap-share" onClick={share} disabled={!file}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
+            </svg>
             Share
           </button>
         ) : (
@@ -58,7 +77,8 @@ export default function RecapSheet({ parlay, rows, overall, onClose }) {
           </a>
         )}
       </div>
-      {canShare && <p className="muted small center">Pick Instagram for Stories, or Save Image to post anywhere.</p>}
-    </div>
+      <p className="recap-hint">{canShare ? 'Post it to your Story, send it to the group chat, or save it.' : 'Save it, then post it anywhere.'}</p>
+    </div>,
+    document.body
   );
 }
