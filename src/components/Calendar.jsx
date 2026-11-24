@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { loadMyParlays } from '../lib/myParlays.js';
-import { refreshStatuses } from '../lib/settle.js';
+import { useMyParlays } from '../lib/myParlays.js';
 import { pnlEntries, byDay, cumulative, dayKey } from '../lib/pnl.js';
 import { fmtMoney } from '../lib/money.js';
 
@@ -21,8 +20,7 @@ function short(v) {
 }
 
 export default function Calendar({ user, onOpen }) {
-  const [parlays, setParlays] = useState(null);
-  const [statuses, setStatuses] = useState({});
+  const { parlays, statuses } = useMyParlays(user.id);
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -30,18 +28,7 @@ export default function Calendar({ user, onOpen }) {
   const [selected, setSelected] = useState(null);
   const [range, setRange] = useState('30d');
 
-  useEffect(() => {
-    let alive = true;
-    loadMyParlays(user.id).then(async ({ data }) => {
-      if (!alive) return;
-      setParlays(data);
-      const s = await refreshStatuses(data);
-      if (alive) setStatuses(s);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [user.id]);
+
 
   const entries = useMemo(() => pnlEntries(parlays || [], statuses), [parlays, statuses]);
   const days = useMemo(() => byDay(entries), [entries]);

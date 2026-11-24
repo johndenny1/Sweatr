@@ -1125,3 +1125,5 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .vf-status.warn { border-color: var(--fair, #ff9f43); color: var(--fair, #ff9f43); }
 .viewfinder.warn .corner { border-color: var(--fair, #ff9f43) !important; }
 .scan-note.warn { color: var(--fair, #ff9f43); line-height: 1.4; }
+
+.bank-net.loading { color: var(--muted); opacity: 0.5; }

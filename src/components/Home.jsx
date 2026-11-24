@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { loadMyParlays } from '../lib/myParlays.js';
+import { useMyParlays } from '../lib/myParlays.js';
 import FlexShare from './FlexShare.jsx';
-import { refreshStatuses } from '../lib/settle.js';
 import { computeRecord } from '../lib/record.js';
 import { describeLeg } from '../lib/evaluate.js';
 import { payoutFor, toWin, fmtMoney } from '../lib/money.js';
@@ -94,25 +93,8 @@ function Ticket({ parlay, status, onOpen }) {
 }
 
 export default function Home({ user, onNew, onOpen, onProfile, onVibeCheck }) {
-  const [parlays, setParlays] = useState(null);
-  const [statuses, setStatuses] = useState({});
+  const { parlays, statuses, error } = useMyParlays(user.id);
   const [filter, setFilter] = useState('all');
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let alive = true;
-    loadMyParlays(user.id).then(async ({ data, error }) => {
-        if (!alive) return;
-        if (error) setError(error.message);
-        const list = data || [];
-        setParlays(list);
-        const s = await refreshStatuses(list);
-        if (alive) setStatuses(s);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [user.id]);
 
   const record = useMemo(() => computeRecord(parlays || [], statuses), [parlays, statuses]);
   const statusOf = (p) => statuses[p.id] || p.status || 'pending';
@@ -155,7 +137,9 @@ export default function Home({ user, onNew, onOpen, onProfile, onVibeCheck }) {
           <div className="bank-label">Net profit</div>
           <FlexShare compact user={user} record={record} parlays={parlays} statuses={statuses} />
         </div>
-        <div className={`bank-net ${net > 0 ? 'pos' : net < 0 ? 'neg' : ''}`}>{fmtMoney(net, { sign: true })}</div>
+        <div className={`bank-net ${parlays === null ? 'loading' : net > 0 ? 'pos' : net < 0 ? 'neg' : ''}`}>
+          {parlays === null ? '$——' : fmtMoney(net, { sign: true })}
+        </div>
         <div className="bank-row">
           <div>
             <div className="bank-k">Record</div>

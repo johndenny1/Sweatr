@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { refreshStatuses } from '../lib/settle.js';
-import { loadMyParlays } from '../lib/myParlays.js';
+import { useMyParlays } from '../lib/myParlays.js';
 import { computeRecord } from '../lib/record.js';
 import { fmtMoney } from '../lib/money.js';
 import { Avatar, displayName } from '../lib/profile.jsx';
@@ -21,8 +20,8 @@ function Stat({ label, value, tone }) {
 }
 
 export default function Profile({ user, onUserChange }) {
-  const [parlays, setParlays] = useState([]);
-  const [statuses, setStatuses] = useState({});
+  const { parlays: cached, statuses } = useMyParlays(user.id);
+  const parlays = cached || [];
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(displayName(user));
   const [saving, setSaving] = useState(false);
@@ -57,18 +56,7 @@ export default function Profile({ user, onUserChange }) {
     }
   }
 
-  useEffect(() => {
-    let alive = true;
-    loadMyParlays(user.id).then(async ({ data }) => {
-        if (!alive) return;
-        setParlays(data || []);
-        const s = await refreshStatuses(data || []);
-        if (alive) setStatuses(s);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [user.id]);
+
 
   const r = useMemo(() => computeRecord(parlays, statuses), [parlays, statuses]);
   const maxLeague = Math.max(1, ...r.leagues.map((l) => l.count));
@@ -141,7 +129,9 @@ export default function Profile({ user, onUserChange }) {
 
       <div className="bank-card">
         <div className="bank-label">All-time profit</div>
-        <div className={`bank-net ${r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : ''}`}>{fmtMoney(r.net, { sign: true })}</div>
+        <div className={`bank-net ${cached === null ? 'loading' : r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : ''}`}>
+          {cached === null ? '$——' : fmtMoney(r.net, { sign: true })}
+        </div>
         <div className="muted small">
           {fmtMoney(r.returned)} returned on {fmtMoney(r.staked)} wagered · verified slips only
         </div>
