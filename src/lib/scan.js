@@ -162,8 +162,12 @@ export async function resolveLegs(rawLegs) {
     const label = raw.raw || [raw.player, raw.team, raw.stat, raw.line].filter(Boolean).join(' ');
     if (!leagueById(league)) return { miss: { label, reason: 'Unknown league' } };
 
-    const start = /^\d{4}-\d{2}-\d{2}$/.test(raw.date || '') ? raw.date : todayISO();
-    const dates = Array.from({ length: raw.date ? 1 : 8 }, (_, i) => addDays(start, i));
+    // The AI's date is a hint, not gospel ("Tuesday, 8pm" can come back as the wrong week or year),
+    // so try it first, then today through the next week, then yesterday (late games / after midnight).
+    const today = todayISO();
+    const hinted = /^\d{4}-\d{2}-\d{2}$/.test(raw.date || '') ? raw.date : null;
+    const dates = [...new Set([hinted, ...Array.from({ length: 8 }, (_, i) => addDays(today, i)), addDays(today, -1)].filter(Boolean))];
+    const start = dates[0];
     const slates = await Promise.all(dates.map((d) => games(league, d)));
     let game = null;
     let date = start;
