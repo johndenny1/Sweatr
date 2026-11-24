@@ -18,7 +18,7 @@ const COPY = {
     ['{last} handled it', '{current} {stat}, needed {line}. {hits}/{total}.'],
     ['Leg in ✅', '{player} over {line} {stat}. {left} left.'],
     ['Never in doubt', '{player} is over {line} {stat}. (It was in doubt.) {hits}/{total}.'],
-    ['{last} did his job', 'Over {line} {stat} is done. {left} to go.'],
+    ['{last} did the job', 'Over {line} {stat} is done. {left} to go.'],
     ['Easy money', '{player} already has {current} {stat}. That leg’s in.'],
     ['{hits}/{total} ✅', '{player} cleared {line} {stat}. Keep it going.'],
   ],
