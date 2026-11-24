@@ -45,6 +45,7 @@ export default async function handler(req, res) {
     else if (receipt.s == null) notes.push("Stake wasn't readable on the slip");
     else if (!sameStake(stake, receipt.s)) notes.push("Stake doesn't match the slip");
     else if (!sameOdds(odds, receipt.o)) notes.push("Odds don't match the slip");
+    else if (receipt.p === false) notes.push("Looks like this bet wasn't placed yet");
 
     // 3. Screenshot reuse + duplicate slip
     let imageHash = fromScan ? receipt.h : null;

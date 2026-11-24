@@ -31,7 +31,7 @@ export default function Scanner({ onResult, onError }) {
       setStep('done');
       setMessage(`${matched.length} leg${matched.length === 1 ? '' : 's'} locked in${unmatched.length ? ` · ${unmatched.length} need a hand` : ''}`);
       setNote(list.length > 1 ? `Merged ${list.length} screenshots · repeated legs counted once` : '');
-      onResult({ matched, unmatched, stake: slip.stake, odds: slip.odds, rawLegs: slip.legs, token: slip.token, duplicate: slip.duplicate });
+      onResult({ matched, unmatched, stake: slip.stake, odds: slip.odds, rawLegs: slip.legs, token: slip.token, duplicate: slip.duplicate, placed: slip.placed, placedEvidence: slip.placedEvidence });
     } catch (err) {
       setStep('error');
       setMessage(err.message);

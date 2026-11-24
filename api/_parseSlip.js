@@ -34,6 +34,10 @@ export function parseSlipReply(text) {
     stake: first('stake') ?? null,
     odds: first('odds') ?? null,
     payout: first('payout') ?? null,
+    // placed if any screenshot shows it was placed; not placed only if one clearly says so and none says placed
+    placed: objs.some((x) => x.placed === true) ? true : objs.some((x) => x.placed === false) ? false : null,
+    placed_evidence: first('placed_evidence') ?? null,
+    ticket_id: first('ticket_id') ?? null,
     legs: objs.flatMap((x) => (Array.isArray(x.legs) ? x.legs : [])),
   };
 }

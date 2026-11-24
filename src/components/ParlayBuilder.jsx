@@ -17,12 +17,12 @@ export default function ParlayBuilder({ onCancel, onSaved, onVibeCheck }) {
   const [unmatched, setUnmatched] = useState([]);
   const [scan, setScan] = useState(null); // { token, stake, odds, prints, duplicate }
 
-  function onScan({ matched, unmatched, stake: s, odds: o, rawLegs, token, duplicate }) {
+  function onScan({ matched, unmatched, stake: s, odds: o, rawLegs, token, duplicate, placed }) {
     setError('');
     // A new scan replaces the slip, so the receipt and legs always line up.
     setLegs(matched);
     setUnmatched(unmatched);
-    setScan({ token, stake: s, odds: o, prints: (rawLegs || []).map(legFingerprint), duplicate });
+    setScan({ token, stake: s, odds: o, prints: (rawLegs || []).map(legFingerprint), duplicate, placed });
     setStake(s != null ? String(s) : '');
     setOdds(o || '');
     if (!matched.length) setAdding(true);
@@ -33,6 +33,7 @@ export default function ParlayBuilder({ onCancel, onSaved, onVibeCheck }) {
   if (!scan) verifyNote = 'Added by hand';
   else if (!scan.token) verifyNote = 'Verification is off (server key missing)';
   else if (scan.duplicate) verifyNote = 'This screenshot was already used';
+  else if (scan.placed === false) verifyNote = "Looks like this bet wasn't placed yet. Screenshot it from your open bets after you place it";
   else if (legs.length < scan.prints.length) verifyNote = `Add the ${scan.prints.length - legs.length} unmatched leg${scan.prints.length - legs.length === 1 ? '' : 's'} to verify`;
   else if (!legsMatchScan(legs, scan.prints)) verifyNote = "Legs don't match the slip";
   else if (scan.stake == null) verifyNote = "Stake wasn't readable on the slip";

@@ -28,6 +28,9 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
   "stake": number or null,          // amount wagered in dollars
   "odds": string or null,           // total parlay odds in American format, e.g. "+650", if shown
   "payout": number or null,         // total return if it hits (e.g. "Max payout", "Potential payout", "To pay"), stake included
+  "placed": true | false | null,    // has this bet actually been placed? (see rules)
+  "placed_evidence": string or null, // the words/buttons on screen that show it, e.g. "Cash out button", "Bet ID 4821", "Place bet button"
+  "ticket_id": string or null,      // bet/ticket/order/receipt ID if one is shown, exactly as printed
   "legs": [
     {
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
@@ -57,6 +60,7 @@ Rules:
 - "Yes" on a leg means side "over"; "No" means side "under" (e.g. "No · Bengals D/ST: 1+ touchdowns" = under 0.5).
 - A team defense / special teams touchdown leg ("D/ST", "Defense/ST", "defensive or return TD") is type "teamprop", stat "dsttd", team = that team's abbreviation, player null, line 0.5 for "1+".
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
+- "placed": true when the screen shows a bet that already exists: a bet/ticket/order ID, "Bet placed", "Open position", "Open bets"/"My bets", a Cash out / Sell button, a "Current value", or a placed date/time. false when it shows a slip still being built: a "Place bet", "Review", "Submit", "Confirm", "Add to betslip" or "Buy" button, or an editable stake box. null if you can't tell.
 - If the image is not a bet slip, return {"stake": null, "odds": null, "payout": null, "legs": []}.`;
 }
 
@@ -101,6 +105,8 @@ export default async function handler(req, res) {
       odds = dec >= 2 ? `+${Math.round((dec - 1) * 100)}` : `-${Math.round(100 / (dec - 1))}`;
     }
     // Overlapping screenshots: never keep the same leg twice, even if the AI repeats it
+    const placed = parsed.placed === true ? true : parsed.placed === false ? false : null;
+    const ticket = typeof parsed.ticket_id === 'string' ? parsed.ticket_id.replace(/\s+/g, '').toUpperCase() : '';
     const legs = dedupeLegs((Array.isArray(parsed.legs) ? parsed.legs : []).map(normalizeTeamProp));
 
     // Signed receipt of exactly what was read off the image. /api/save checks the
@@ -108,17 +114,29 @@ export default async function handler(req, res) {
     // One screenshot: its own hash (same as before). Several: a hash of all of them, plus each one's
     // hash so a screenshot already used for another slip is still caught.
     const hashes = images.map((x) => sha256(x));
-    const imageHash = hashes.length === 1 ? hashes[0] : sha256(hashes.slice().sort().join('|'));
+    // A bet/ticket ID is the strongest fingerprint: the same bet can only be verified once, by anyone,
+    // even from a different screenshot of it.
+    const ticketHash = ticket.length >= 5 ? sha256(`ticket:${ticket}`) : null;
+    const imageHash = ticketHash || (hashes.length === 1 ? hashes[0] : sha256(hashes.slice().sort().join('|')));
     let duplicate = false;
     if (hasAdmin) {
-      const { data } = await admin.from('parlays').select('id').in('image_hash', [...new Set([imageHash, ...hashes])]).limit(1);
+      const { data } = await admin.from('parlays').select('id').in('image_hash', [...new Set([imageHash, ...hashes, ...(ticketHash ? [ticketHash] : [])])]).limit(1);
       duplicate = Boolean(data?.length);
     }
     const token = hasAdmin
-      ? sign({ u: user.id, h: imageHash, hs: hashes.length > 1 ? hashes : undefined, s: stake, o: odds, l: legs.map(legFingerprint), t: Date.now() })
+      ? sign({
+          u: user.id,
+          h: imageHash,
+          hs: hashes.length > 1 || ticketHash ? hashes : undefined,
+          p: placed,
+          s: stake,
+          o: odds,
+          l: legs.map(legFingerprint),
+          t: Date.now(),
+        })
       : null;
 
-    return res.status(200).json({ stake, odds, legs, token, duplicate });
+    return res.status(200).json({ stake, odds, legs, token, duplicate, placed, placedEvidence: parsed.placed_evidence || null });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
