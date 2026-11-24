@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { getBox } from '../lib/api.js';
+import { getBox, peekBox, prefetchGame } from '../lib/api.js';
+import { peekParlay, rememberParlay } from '../lib/myParlays.js';
 import { evaluateLeg, parlayStatus, describeLeg } from '../lib/evaluate.js';
 import { saveResult } from '../lib/settle.js';
 import RecapSheet from './RecapSheet.jsx';
@@ -12,8 +13,17 @@ const REFRESH_MS = 30_000;
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
 
 export default function ParlayView({ id, userId, backLabel = 'All parlays', onBack, onOpenGame }) {
-  const [parlay, setParlay] = useState(null);
-  const [boxes, setBoxes] = useState({}); // key `${league}:${gameId}` → { game, players }
+  const [parlay, setParlay] = useState(() => peekParlay(id));
+  // key `${league}:${gameId}` → { game, players }. Starts from the last copy we saw so it shows instantly.
+  const [boxes, setBoxes] = useState(() => {
+    const p = peekParlay(id);
+    const out = {};
+    for (const l of p?.legs || []) {
+      const b = peekBox(l.league, l.gameId);
+      if (b) out[`${l.league}:${l.gameId}`] = b;
+    }
+    return out;
+  });
   const [updated, setUpdated] = useState(null);
   const [error, setError] = useState('');
   const [showRecap, setShowRecap] = useState(false);
@@ -25,8 +35,22 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
       .select('*')
       .eq('id', id)
       .single()
-      .then(({ data, error }) => (error ? setError(error.message) : setParlay(data)));
+      .then(({ data, error }) => {
+        if (error) return setError(error.message);
+        rememberParlay(data);
+        setParlay(data);
+      });
   }, [id]);
+
+  // Warm each game page so tapping a game opens instantly.
+  const gameKeys = parlay ? [...new Set(parlay.legs.map((l) => `${l.league}:${l.gameId}:${l.date || ''}`))].join('|') : '';
+  useEffect(() => {
+    if (!gameKeys) return;
+    for (const k of gameKeys.split('|')) {
+      const [league, gameId, date] = k.split(':');
+      prefetchGame(league, gameId, date || undefined);
+    }
+  }, [gameKeys]);
 
   const refresh = useCallback(async () => {
     if (!parlay) return;
@@ -80,6 +104,7 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
   if (!parlay) return <p className="muted">{error || 'Loading…'}</p>;
 
   const overall = parlayStatus(legResults.map((r) => r.result));
+  const loaded = legResults.every((r) => r.box);
   const hits = legResults.filter((r) => r.result.status === 'won').length;
 
   // Group legs under their game
@@ -104,7 +129,7 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
             {parlay.name}
             {parlay.verified ? <span className="vbadge on">✓ Verified</span> : <span className="vbadge off">Unverified</span>}
           </h2>
-          <span className={`pill status-${overall}`}>{STATUS_TEXT[overall]}</span>
+          {loaded ? <span className={`pill status-${overall}`}>{STATUS_TEXT[overall]}</span> : <span className="pill">···</span>}
         </div>
         <div className="submitted">Submitted {fmtSubmitted(parlay.created_at)}</div>
         {!parlay.verified && parlay.verify_note && (
@@ -133,7 +158,7 @@ export default function ParlayView({ id, userId, backLabel = 'All parlays', onBa
       {showRecap && (
         <RecapSheet parlay={parlay} rows={legResults} overall={overall} onClose={() => setShowRecap(false)} />
       )}
-      {overall === 'pending' && (
+      {loaded && overall === 'pending' && (
         <button className="scout-btn" onClick={() => setScouting(true)}>
           <span>🔍</span> Scout this slip
           <small>Recent games, injuries, weather</small>

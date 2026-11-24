@@ -43,6 +43,15 @@ function publish(next) {
   listeners.forEach((fn) => fn(cache));
 }
 
+// One slip by id, from whatever we already have (open slips, or your list), for instant first paint.
+const oneCache = new Map();
+export function rememberParlay(p) {
+  if (p?.id) oneCache.set(p.id, p);
+}
+export function peekParlay(id) {
+  return oneCache.get(id) || cache.parlays?.find((p) => p.id === id) || null;
+}
+
 export function refreshMyParlays(userId) {
   if (inflight && inflight.userId === userId) return inflight.promise;
   const promise = (async () => {

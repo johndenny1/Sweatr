@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getGameDetail } from '../lib/api.js';
+import { getGameDetail, peekGame } from '../lib/api.js';
 import { evaluateLeg, describeLeg } from '../lib/evaluate.js';
 
 const STATUS_TEXT = { pending: 'Not started', live: 'Live', won: 'Hit', lost: 'Miss', push: 'Push' };
@@ -211,10 +211,10 @@ function BoxScore({ detail, legs }) {
 }
 
 export default function GameView({ league, gameId, date, legs = [], onBack }) {
-  const [detail, setDetail] = useState(null);
+  const [detail, setDetail] = useState(() => peekGame(league, gameId) || null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState('plays');
-  const [updated, setUpdated] = useState(null);
+  const [updated, setUpdated] = useState(() => (peekGame(league, gameId) ? new Date() : null));
 
   const load = useCallback(async () => {
     try {
