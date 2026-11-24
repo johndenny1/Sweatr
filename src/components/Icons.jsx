@@ -62,3 +62,11 @@ export const ShareIcon = (p) => (
     <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6" />
   </svg>
 );
+
+export const TrophyIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M7 4h10v4a5 5 0 01-10 0V4z" />
+    <path d="M7 6H4.5a2.5 2.5 0 002.8 3.4M17 6h2.5a2.5 2.5 0 01-2.8 3.4" />
+    <path d="M12 13v3.5M8.5 20h7M9.5 20l.5-3.5h4l.5 3.5" />
+  </svg>
+);

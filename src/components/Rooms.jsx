@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createRoom, joinRoom, myRooms } from '../lib/rooms.js';
+import Friends from './Friends.jsx';
 
-// Rooms tab: your watch parties, plus create / join by code.
+// Leagues tab: your leagues (rankings + live board + chat) and your friends.
 export default function Rooms({ user, onOpen }) {
+  const [tab, setTab] = useState(() => sessionStorage.getItem('sweatr-social-tab') || 'leagues');
+  const pick = (t) => {
+    setTab(t);
+    try {
+      sessionStorage.setItem('sweatr-social-tab', t);
+    } catch {}
+  };
   const [rooms, setRooms] = useState(null);
   const [error, setError] = useState('');
   const [mode, setMode] = useState(null); // 'create' | 'join'
@@ -41,15 +49,33 @@ export default function Rooms({ user, onOpen }) {
   return (
     <div className="stack rooms">
       <div className="rooms-hero">
-        <div className="rooms-kicker">Watch parties</div>
-        <h1>Sweat Rooms</h1>
-        <p className="muted">Drop your slips in one room with the group chat and sweat every leg together, live.</p>
+        <div className="rooms-kicker">Compete with the group chat</div>
+        <h1>{tab === 'friends' ? 'Friends' : 'Leagues'}</h1>
+        <p className="muted">
+          {tab === 'friends'
+            ? 'Add friends by @handle, see who’s actually up, and go head to head.'
+            : 'Rank up against your crew on verified slips, and sweat each other’s legs live.'}
+        </p>
       </div>
+
+      <div className="room-tabs social-tabs">
+        <button className={tab === 'leagues' ? 'on' : ''} onClick={() => pick('leagues')}>
+          Leagues
+        </button>
+        <button className={tab === 'friends' ? 'on' : ''} onClick={() => pick('friends')}>
+          Friends
+        </button>
+      </div>
+
+      {tab === 'friends' ? (
+        <Friends user={user} />
+      ) : (
+      <>
 
       <div className="rooms-actions">
         <button className={`rooms-action ${mode === 'create' ? 'on' : ''}`} onClick={() => open('create')}>
           <span className="rooms-action-icon">＋</span>
-          <span>Start a room</span>
+          <span>Start a league</span>
         </button>
         <button className={`rooms-action ${mode === 'join' ? 'on' : ''}`} onClick={() => open('join')}>
           <span className="rooms-action-icon">#</span>
@@ -59,7 +85,7 @@ export default function Rooms({ user, onOpen }) {
 
       {mode && (
         <form className="card rooms-form" onSubmit={submit}>
-          <label className="label">{mode === 'create' ? 'Room name' : 'Invite code'}</label>
+          <label className="label">{mode === 'create' ? 'League name' : 'Invite code'}</label>
           <input
             autoFocus
             value={value}
@@ -71,18 +97,18 @@ export default function Rooms({ user, onOpen }) {
             onChange={(e) => setValue(mode === 'join' ? e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') : e.target.value)}
           />
           <button className="primary big" disabled={busy || !value.trim()}>
-            {busy ? 'One sec…' : mode === 'create' ? 'Create room' : 'Join room'}
+            {busy ? 'One sec…' : mode === 'create' ? 'Create league' : 'Join league'}
           </button>
         </form>
       )}
 
       {error && <p className="error">{error}</p>}
 
-      <div className="section-title">Your rooms</div>
+      <div className="section-title">Your leagues</div>
       {rooms === null && <p className="muted">Loading…</p>}
       {rooms?.length === 0 && !error && (
         <div className="card empty-rooms">
-          <div>No rooms yet. Start one and send the link to the group chat.</div>
+          <div>No leagues yet. Start one and send the link to the group chat.</div>
         </div>
       )}
       {rooms?.map((r) => (
@@ -97,6 +123,8 @@ export default function Rooms({ user, onOpen }) {
           <span className="watch">›</span>
         </button>
       ))}
+      </>
+      )}
     </div>
   );
 }

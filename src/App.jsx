@@ -15,6 +15,7 @@ import Calendar from './components/Calendar.jsx';
 import VibeCheck from './components/VibeCheck.jsx';
 import RoomView from './components/RoomView.jsx';
 import { capturePendingJoin, takePendingJoin, joinRoom } from './lib/rooms.js';
+import { syncProfile } from './lib/social.js';
 
 capturePendingJoin();
 
@@ -81,6 +82,12 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
+
+  // Keep the public profile (name/photo for leagues and friends) up to date
+  useEffect(() => {
+    if (user) syncProfile(user);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, user?.user_metadata?.username, user?.user_metadata?.avatar_url]);
 
   // Invite links (#join/CODE): join as soon as someone is signed in and past the age check.
   const [joinError, setJoinError] = useState('');

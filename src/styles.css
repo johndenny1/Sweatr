@@ -1076,3 +1076,47 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .vibe-leg.rate-fair { border-left-color: var(--fair); background: rgba(255, 159, 67, 0.08); border-color: rgba(255, 159, 67, 0.25); }
 .vibe-leg.rate-weak { border-left-color: var(--lost); background: rgba(255, 77, 109, 0.08); border-color: rgba(255, 77, 109, 0.25); }
 .vibe-leg .scout-pill { font-size: 0.62rem; padding: 4px 8px; }
+
+/* leagues + friends */
+.room-tabs.three { grid-template-columns: 1fr 1fr 1fr; }
+.social-tabs { position: static; }
+.standings { display: flex; flex-direction: column; gap: 10px; }
+.period-tabs { grid-template-columns: repeat(3, 1fr); }
+.rank-list, .unranked { display: flex; flex-direction: column; gap: 8px; }
+.rank-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; color: var(--text);
+  padding: 10px 12px; border-radius: 20px; background: var(--card); border: 1px solid var(--line);
+}
+.rank-row:active { transform: scale(0.985); }
+.rank-row.me { border-color: rgba(183, 140, 255, 0.6); box-shadow: 0 0 16px rgba(123, 47, 247, 0.3); }
+.rank-row.quiet { opacity: 0.75; padding: 8px 12px; }
+.rank-num { width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; font-family: var(--block); font-size: 0.85rem; background: rgba(155, 92, 255, 0.14); }
+.podium.p1 .rank-num { background: linear-gradient(135deg, #ffe17a, #e0a800); color: #2a1d00; box-shadow: 0 0 14px rgba(255, 210, 80, 0.55); }
+.podium.p2 .rank-num { background: linear-gradient(135deg, #f1f1f6, #a9adbd); color: #1c1d24; }
+.podium.p3 .rank-num { background: linear-gradient(135deg, #f0b483, #b26a33); color: #2a1406; }
+.rank-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rank-who b { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-who b em { font-style: normal; font-size: 0.75rem; margin-left: 6px; }
+.rank-who > span { font-size: 0.75rem; color: var(--muted); }
+.rank-nums { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.rank-nums b { font-family: var(--block); font-size: 1.05rem; font-weight: 400; }
+.rank-nums span { font-size: 0.72rem; color: var(--muted); font-weight: 700; }
+.handle-card p { margin: 0; }
+.handle-input { display: flex; align-items: center; gap: 4px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.4); padding: 0 16px; }
+.handle-input span { font-family: var(--block); color: var(--accent-hi); font-size: 1.1rem; }
+.handle-input input { border: 0; background: none; flex: 1; font-size: 1.1rem; padding: 12px 0; }
+.me-handle { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 18px; background: rgba(155, 92, 255, 0.1); border: 1px solid var(--line); }
+.add-friend { display: flex; gap: 8px; }
+.add-friend input { flex: 1; border-radius: 999px; padding: 12px 16px; font-size: 16px; }
+.req-row { display: flex; align-items: center; gap: 10px; }
+.h2h { gap: 16px; }
+.h2h-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.h2h-head h2 { margin: 2px 0 0; font-size: 1.4rem; }
+.h2h-faces { display: flex; justify-content: space-around; align-items: center; }
+.h2h-faces > div { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.85rem; }
+.h2h-score { font-family: var(--logo); font-size: 2.2rem; }
+.h2h-table { display: flex; flex-direction: column; gap: 6px; }
+.h2h-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-weight: 800; }
+.h2h-row > span:first-child { text-align: left; } .h2h-row > span:last-child { text-align: right; }
+.h2h-row .win { color: var(--won); text-shadow: 0 0 10px rgba(47, 227, 154, 0.4); }
+.h2h-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--block); font-weight: 400; }

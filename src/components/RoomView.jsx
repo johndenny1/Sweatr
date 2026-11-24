@@ -18,6 +18,8 @@ import { useLiveSlips, useLegMoments } from '../lib/live.js';
 import { describeLeg } from '../lib/evaluate.js';
 import { toWin, fmtMoney } from '../lib/money.js';
 import { initials } from '../lib/profile.jsx';
+import Standings from './Standings.jsx';
+import { leagueStandings } from '../lib/social.js';
 import { fmtSubmitted } from '../lib/when.js';
 
 const STAMP = { won: 'Cashed', lost: 'Busted', live: 'Live', pending: 'Open', push: 'Push' };
@@ -47,7 +49,7 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
   const [messages, setMessages] = useState([]);
   const [moments, setMoments] = useState([]);
   const [online, setOnline] = useState([]);
-  const [tab, setTab] = useState('board');
+  const [tab, setTab] = useState('standings');
   const [unread, setUnread] = useState(0);
   const [error, setError] = useState('');
   const [picker, setPicker] = useState(false);
@@ -120,10 +122,10 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
 
   async function invite() {
     const url = inviteLink(room.code);
-    const text = `Sweat with us in “${room.name}” on Sweatr`;
+    const text = `Join “${room.name}” on Sweatr. Verified slips only, let’s see who’s actually up.`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Join my Sweat Room', text, url });
+        await navigator.share({ title: 'Join my Sweatr league', text, url });
         return;
       } catch {
         return;
@@ -140,7 +142,7 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
 
   async function leave() {
     const isOwner = room?.owner_id === user.id;
-    if (!window.confirm(isOwner ? 'Delete this room for everyone?' : 'Leave this room?')) return;
+    if (!window.confirm(isOwner ? 'Delete this league for everyone?' : 'Leave this league?')) return;
     try {
       if (isOwner) await deleteRoom(id);
       else await leaveRoom(user.id, id);
@@ -156,16 +158,16 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
     return st === 'live' || st === 'pending' ? s + (toWin(p.stake, p.odds) || 0) : s;
   }, 0);
 
-  if (!room) return <p className="muted">{error || 'Loading room…'}</p>;
+  if (!room) return <p className="muted">{error || 'Loading league…'}</p>;
 
   return (
     <div className="stack room">
       <div className="row between">
         <button className="back-btn" onClick={onBack}>
           <svg className="back-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
-          <span>Rooms</span>
+          <span>Leagues</span>
         </button>
-        <button className="room-more" onClick={() => setMenu((v) => !v)} aria-label="Room options">
+        <button className="room-more" onClick={() => setMenu((v) => !v)} aria-label="League options">
           •••
         </button>
       </div>
@@ -189,7 +191,7 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
             ))}
           </div>
           <span className="muted small">
-            <span className="here-dot" /> {Math.max(online.length, 1)} here · {members.length} in room
+            <span className="here-dot" /> {Math.max(online.length, 1)} here · {members.length} in league
           </span>
         </div>
         <div className="room-stats">
@@ -211,9 +213,12 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
         </button>
       </div>
 
-      <div className="room-tabs">
+      <div className="room-tabs three">
+        <button className={tab === 'standings' ? 'on' : ''} onClick={() => setTab('standings')}>
+          Standings
+        </button>
         <button className={tab === 'board' ? 'on' : ''} onClick={() => setTab('board')}>
-          Board
+          Live
         </button>
         <button
           className={tab === 'chat' ? 'on' : ''}
@@ -226,10 +231,18 @@ export default function RoomView({ user, id, onBack, onOpenSlip }) {
         </button>
       </div>
 
+      {tab === 'standings' && (
+        <Standings
+          meId={user.id}
+          load={(period) => leagueStandings(id, period)}
+          emptyText="Nobody's ranked yet. Rankings fill in as people's verified slips settle."
+        />
+      )}
+
       {tab === 'board' && (
         <>
           <button className="add-slip" onClick={() => setPicker(true)}>
-            <span>＋</span> Drop a slip in the room
+            <span>＋</span> Drop a slip in the league
           </button>
           {slips.length === 0 && <div className="card muted center">No slips yet. Drop yours first.</div>}
           {slips.map((p) => (
@@ -364,7 +377,7 @@ function BoardSlip({ parlay, live, owner, mine, onOpen, onRemove }) {
       </div>
       {mine && (
         <button className="link muted small board-remove" onClick={onRemove}>
-          Take out of room
+          Take out of league
         </button>
       )}
     </div>
@@ -418,7 +431,7 @@ function SlipPicker({ userId, already, onClose, onPick }) {
                     {done ? ` · ${p.status === 'won' ? 'Cashed' : 'Busted'}` : ''}
                   </div>
                 </div>
-                <span className="picker-cta">{inRoom ? 'In room' : 'Add'}</span>
+                <span className="picker-cta">{inRoom ? 'Added' : 'Add'}</span>
               </button>
             );
           })}
