@@ -9,6 +9,7 @@ const HOOPS = [
   { id: 'pra', label: 'Pts + Reb + Ast', keys: ['points', 'rebounds', 'assists'] },
   { id: 'pr', label: 'Pts + Reb', keys: ['points', 'rebounds'] },
   { id: 'pa', label: 'Pts + Ast', keys: ['points', 'assists'] },
+  { id: 'ra', label: 'Reb + Ast', keys: ['rebounds', 'assists'] },
   { id: '3pm', label: '3-Pointers Made', keys: ['threePointFieldGoalsMade'] },
   { id: 'stl', label: 'Steals', keys: ['steals'] },
   { id: 'blk', label: 'Blocks', keys: ['blocks'] },
@@ -21,6 +22,8 @@ const FOOTBALL = [
   { id: 'recyds', label: 'Receiving Yards', keys: ['receiving.receivingYards'] },
   { id: 'rec', label: 'Receptions', keys: ['receiving.receptions'] },
   { id: 'rushrec', label: 'Rush + Rec Yards', keys: ['rushing.rushingYards', 'receiving.receivingYards'] },
+  { id: 'passrush', label: 'Pass + Rush Yards', keys: ['passing.passingYards', 'rushing.rushingYards'] },
+  { id: 'rushatt', label: 'Rush Attempts', keys: ['rushing.rushingAttempts'] },
   {
     id: 'anytd',
     label: 'Anytime TD (over 0.5)',

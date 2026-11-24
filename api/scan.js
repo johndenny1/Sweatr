@@ -11,8 +11,8 @@ import { askGemini } from './_gemini.js';
 import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
 const STAT_IDS = `
-NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
-NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), firsttd (first touchdown scorer of the game), int (interceptions thrown)
+NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), ra (reb+ast), 3pm, stl, blk
+NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), passrush (pass+rush yards), rushatt (rush attempts), anytd (anytime touchdown), firsttd (first touchdown scorer of the game), int (interceptions thrown)
 MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
 function prompt(today, count = 1) {
@@ -28,6 +28,7 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
   "stake": number or null,          // amount wagered in dollars
   "odds": string or null,           // total parlay odds in American format, e.g. "+650", if shown
   "payout": number or null,         // total return if it hits (e.g. "Max payout", "Potential payout", "To pay"), stake included
+  "multiplier": number or null,     // pick'em apps: the payout multiplier, e.g. 6 for "6x" or "6.00x"
   "placed": true | false | null,    // has this bet actually been placed? (see rules)
   "placed_evidence": string or null, // the words/buttons on screen that show it, e.g. "Cash out button", "Bet ID 4821", "Place bet button"
   "ticket_id": string or null,      // bet/ticket/order/receipt ID if one is shown, exactly as printed
@@ -62,6 +63,9 @@ Rules:
 - A team defense / special teams touchdown leg ("D/ST", "Defense/ST", "defensive or return TD") is type "teamprop", stat "dsttd", team = that team's abbreviation, player null, line 0.5 for "1+".
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
 - "placed": true when the screen shows a bet that already exists: a bet/ticket/order ID, "Bet placed", "Open position", "Open bets"/"My bets", a Cash out / Sell button, a "Current value", or a placed date/time. false when it shows a slip still being built: a "Place bet", "Review", "Submit", "Confirm", "Add to betslip" or "Buy" button, or an editable stake box. null if you can't tell.
+- Pick'em apps (Underdog, PrizePicks, Sleeper, Betr, Dabble, ParlayPlay): "Higher"/"More"/up arrow means side "over"; "Lower"/"Less"/down arrow means side "under". The number shown is the line. "Entry"/"Entry fee" is the stake; "Payout"/"To win"/"Potential payout" is the payout (use the top/max payout if several are listed, e.g. flex or insured). Put a multiplier like "6x" in "multiplier".
+- Pick'em players often sit under a game label like "CIN @ WSH" or "vs WSH"; use it for matchup/team/opponent. Fantasy points and other markets with no stat id still go in with raw text.
+- Pick'em "placed": true for a submitted/live entry (entry ID, "Live", "Entry placed", "My entries", "Pending"); false for a "Submit entry"/"Place entry"/"Review" screen or editable entry amount.
 - If the image is not a bet slip, return {"stake": null, "odds": null, "payout": null, "legs": []}.`;
 }
 
@@ -100,7 +104,10 @@ export default async function handler(req, res) {
     const stake = typeof parsed.stake === 'number' ? parsed.stake : null;
     let odds = typeof parsed.odds === 'string' && /\d/.test(parsed.odds) ? parsed.odds : null;
     // Slips that show cost + payout (Kalshi, etc.) instead of odds: work out the American odds.
-    const payout = typeof parsed.payout === 'number' ? parsed.payout : null;
+    let payout = typeof parsed.payout === 'number' ? parsed.payout : null;
+    // Pick'em (Underdog, PrizePicks…): entry × multiplier is the payout when no payout is printed.
+    const mult = typeof parsed.multiplier === 'number' ? parsed.multiplier : null;
+    if (!payout && stake > 0 && mult > 1) payout = Math.round(stake * mult * 100) / 100;
     if (!odds && stake > 0 && payout > stake) {
       const dec = payout / stake;
       odds = dec >= 2 ? `+${Math.round((dec - 1) * 100)}` : `-${Math.round(100 / (dec - 1))}`;
