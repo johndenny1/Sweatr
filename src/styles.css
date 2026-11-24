@@ -1127,3 +1127,8 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .scan-note.warn { color: var(--fair, #ff9f43); line-height: 1.4; }
 
 .bank-net.loading { color: var(--muted); opacity: 0.5; }
+
+/* keep the tab bar pinned: every page fills the full screen, even short ones (iPhone home-screen
+   apps shift fixed-bottom elements when the page is shorter than the screen) */
+html, body { min-height: 100%; }
+.app { box-sizing: border-box; min-height: 100vh; min-height: var(--app-h, 100dvh); }
