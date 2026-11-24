@@ -4,7 +4,7 @@ import { CameraIcon, ImageIcon } from './Icons.jsx';
 
 // Camera-style viewfinder: snap a photo or pick screenshots, then watch it scan.
 // Long slips: pick several screenshots (or add more after) and they're read as one slip.
-export default function Scanner({ onResult, onError }) {
+export default function Scanner({ onResult, onError, checkPlaced = false }) {
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
   const addRef = useRef(null);
@@ -28,9 +28,20 @@ export default function Scanner({ onResult, onError }) {
       setStep('matching');
       setMessage(`Found ${slip.legs.length} leg${slip.legs.length === 1 ? '' : 's'}, matching games`);
       const { matched, unmatched } = await resolveLegs(slip.legs);
-      setStep('done');
-      setMessage(`${matched.length} leg${matched.length === 1 ? '' : 's'} locked in${unmatched.length ? ` · ${unmatched.length} need a hand` : ''}`);
-      setNote(list.length > 1 ? `Merged ${list.length} screenshots · repeated legs counted once` : '');
+      if (checkPlaced && slip.placed === false) {
+        setStep('warn');
+        setMessage('This bet hasn’t been placed yet');
+      } else {
+        setStep('done');
+        setMessage(`${matched.length} leg${matched.length === 1 ? '' : 's'} locked in${unmatched.length ? ` · ${unmatched.length} need a hand` : ''}`);
+      }
+      setNote(
+        checkPlaced && slip.placed === false
+          ? 'Place it first, then screenshot it from your open bets to get it verified. Or Sweat Check it instead.'
+          : list.length > 1
+            ? `Merged ${list.length} screenshots · repeated legs counted once`
+            : ''
+      );
       onResult({ matched, unmatched, stake: slip.stake, odds: slip.odds, rawLegs: slip.legs, token: slip.token, duplicate: slip.duplicate, placed: slip.placed, placedEvidence: slip.placedEvidence });
     } catch (err) {
       setStep('error');
@@ -73,6 +84,7 @@ export default function Scanner({ onResult, onError }) {
   }
 
   const busy = step === 'reading' || step === 'matching';
+  const warn = step === 'warn';
   const canAdd = shots.length > 0 && shots.length < MAX_SHOTS && !busy;
 
   return (
@@ -115,6 +127,7 @@ export default function Scanner({ onResult, onError }) {
           <div className={`vf-status ${step}`}>
             {busy && <span className="spinner" />}
             {step === 'done' && <span className="check">✓</span>}
+            {warn && <span className="check">!</span>}
             {message}
             {busy && <span className="dots" />}
           </div>
@@ -138,7 +151,7 @@ export default function Scanner({ onResult, onError }) {
           <span>＋</span> Add another screenshot
         </button>
       )}
-      {note && <div className="scan-note">{note}</div>}
+      {note && <div className={`scan-note ${warn ? 'warn' : ''}`}>{note}</div>}
 
       <div className="scan-actions">
         <button className="primary grow" disabled={busy} onClick={() => cameraRef.current?.click()}>

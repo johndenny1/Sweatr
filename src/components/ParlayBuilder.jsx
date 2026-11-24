@@ -33,7 +33,7 @@ export default function ParlayBuilder({ onCancel, onSaved, onVibeCheck }) {
   if (!scan) verifyNote = 'Added by hand';
   else if (!scan.token) verifyNote = 'Verification is off (server key missing)';
   else if (scan.duplicate) verifyNote = 'This screenshot was already used';
-  else if (scan.placed === false) verifyNote = "Looks like this bet wasn't placed yet. Screenshot it from your open bets after you place it";
+  else if (scan.placed === false) verifyNote = 'This bet hasn’t been placed yet, so it can’t be verified. Place it, then scan it from your open bets';
   else if (legs.length < scan.prints.length) verifyNote = `Add the ${scan.prints.length - legs.length} unmatched leg${scan.prints.length - legs.length === 1 ? '' : 's'} to verify`;
   else if (!legsMatchScan(legs, scan.prints)) verifyNote = "Legs don't match the slip";
   else if (scan.stake == null) verifyNote = "Stake wasn't readable on the slip";
@@ -92,7 +92,7 @@ export default function ParlayBuilder({ onCancel, onSaved, onVibeCheck }) {
         </button>
       )}
 
-      <Scanner onResult={onScan} onError={setError} />
+      <Scanner onResult={onScan} onError={setError} checkPlaced />
 
       <div className="or-divider">
         <span>or build it yourself</span>

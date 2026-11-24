@@ -1120,3 +1120,8 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
 .h2h-row > span:first-child { text-align: left; } .h2h-row > span:last-child { text-align: right; }
 .h2h-row .win { color: var(--won); text-shadow: 0 0 10px rgba(47, 227, 154, 0.4); }
 .h2h-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--block); font-weight: 400; }
+
+/* scanned slip that hasn't been placed yet */
+.vf-status.warn { border-color: var(--fair, #ff9f43); color: var(--fair, #ff9f43); }
+.viewfinder.warn .corner { border-color: var(--fair, #ff9f43) !important; }
+.scan-note.warn { color: var(--fair, #ff9f43); line-height: 1.4; }
