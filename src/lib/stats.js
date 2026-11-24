@@ -31,6 +31,8 @@ const FOOTBALL = [
       'puntReturns.puntReturnTouchdowns',
     ],
   },
+  // Graded from the scoring plays (who scored the game's first touchdown), not the box score.
+  { id: 'firsttd', label: 'First TD Scorer', keys: [], byPlays: true },
   { id: 'int', label: 'Interceptions Thrown', keys: ['passing.interceptions'] },
 ];
 

@@ -8,6 +8,20 @@ export function evaluateLeg(leg, game, players) {
   if (!game) return { status: 'pending', summary: 'Waiting for game data' };
   const started = game.isLive || game.isFinal;
 
+  if (leg.type === 'prop' && leg.stat === 'firsttd') {
+    const label = 'First TD';
+    if (!started) return { status: 'pending', summary: label, current: 0, progress: 0 };
+    const mine = game.firstTd && game.firstTdId === leg.playerId;
+    const yes = leg.side !== 'under';
+    if (game.firstTd) {
+      const summary = mine ? 'Scored the first TD' : 'Someone else scored first';
+      return { status: mine === yes ? 'won' : 'lost', summary, current: mine ? 1 : 0, progress: mine ? 1 : 0 };
+    }
+    // No touchdown yet. A game with no TDs at all loses a "yes" first-TD bet.
+    if (game.isFinal) return { status: yes ? 'lost' : 'won', summary: 'No touchdowns scored', current: 0, progress: 0 };
+    return { status: 'live', summary: 'No TD scored yet', current: 0, progress: 0 };
+  }
+
   if (leg.type === 'prop') {
     const player = players?.find((p) => p.id === leg.playerId);
     const current = statValue(player?.stats, leg.league, leg.stat);
@@ -80,6 +94,8 @@ export function parlayStatus(results) {
 
 export function describeLeg(leg) {
   if (leg.type === 'prop') {
+    if (leg.stat === 'firsttd') return `${leg.playerName} ${leg.side === 'under' ? 'not ' : ''}First TD Scorer`;
+    if (leg.stat === 'anytd' && Number(leg.line) === 0.5) return `${leg.playerName} ${leg.side === 'under' ? 'No ' : ''}Anytime TD`;
     const label = statDef(leg.league, leg.stat)?.label || leg.stat;
     return `${leg.playerName} ${leg.side === 'over' ? 'Over' : 'Under'} ${leg.line} ${label}`;
   }

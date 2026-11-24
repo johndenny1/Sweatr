@@ -12,7 +12,7 @@ import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), 3pm, stl, blk
-NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), int (interceptions thrown)
+NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), anytd (anytime touchdown), firsttd (first touchdown scorer of the game), int (interceptions thrown)
 MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
 function prompt(today, count = 1) {
@@ -53,6 +53,7 @@ Stat ids:${STAT_IDS}
 Rules:
 - "25+ points" or "To record 25+ points" means side "over", line 24.5. "Over 24.5" stays 24.5.
 - "Anytime touchdown scorer" is stat "anytd", side "over", line 0.5.
+- "First touchdown scorer" / "First TD" is stat "firsttd", side "over", line 0.5. ("Last TD" and "2+ TDs" are not firsttd.)
 - For a game total, put both teams in team/opponent.
 - College games are "cfb" (football) or "cbb" (basketball).
 - Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.

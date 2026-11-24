@@ -90,7 +90,10 @@ export function normalizeSummary(data, eventId) {
       }
     }
   }
-  if (game) game.dstTd = dstTouchdowns(data, game);
+  if (game) {
+    game.dstTd = dstTouchdowns(data, game);
+    Object.assign(game, firstTouchdown(data, [...byId.values()]));
+  }
   return { game, players: [...byId.values()] };
 }
 
@@ -106,6 +109,32 @@ function dstTouchdowns(data, game) {
     if (abbr && abbr in out) out[abbr]++;
   }
   return out;
+}
+
+// Who scored the game's first touchdown. ESPN scoring-play text starts with the scorer
+// ("Chase Brown 5 Yd Run", "Ja'Marr Chase 20 Yd pass from Joe Burrow"), so match names at the start.
+// firstTd: true once any TD has been scored; firstTdId: the scorer if it was a player in the box score.
+function firstTouchdown(data, players) {
+  const plays = [...(data?.scoringPlays || [])].sort(
+    (a, b) => (a.period?.number || 0) - (b.period?.number || 0) || clockSecs(b.clock) - clockSecs(a.clock)
+  );
+  const td = plays.find((p) => /touchdown|\btd\b/i.test(`${p.type?.text || ''} ${p.type?.abbreviation || ''} ${p.scoringType?.name || ''}`) || /\btd\b|touchdown/i.test(p.text || ''));
+  if (!td) return { firstTd: false, firstTdId: null };
+  const norm = (v) => String(v || '').toLowerCase().replace(/[’'.]/g, '');
+  const text = norm(td.text);
+  let best = null;
+  for (const pl of players) {
+    const name = norm(pl.name);
+    if (!name) continue;
+    const at = text.indexOf(name);
+    if (at !== -1 && (!best || at < best.at)) best = { at, id: pl.id };
+  }
+  return { firstTd: true, firstTdId: best?.id || null, firstTdText: td.text || '' };
+}
+function clockSecs(c) {
+  const v = c?.displayValue || c || '';
+  const [m, s] = String(v).split(':').map(Number);
+  return Number.isFinite(m) ? m * 60 + (s || 0) : 0;
 }
 
 export function normalizeRoster(data, teamAbbr) {
