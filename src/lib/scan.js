@@ -142,7 +142,11 @@ export async function resolveLegs(rawLegs) {
     const words = t.split(' ').filter((w) => w !== 'yes' && w !== 'no');
     for (const [abbr, names] of [[g.home, g.homeNames], [g.away, g.awayNames]]) {
       if (words.some((w) => sameTeam(w, abbr))) return abbr;
-      if ((names || []).some((n) => n && t.includes(norm(n)))) return abbr;
+      // Full or nick name ("Denver Nuggets", "Nuggets"), not the bare city, so "Los Angeles" can't
+      // pick the wrong LA team.
+      const full = names?.[0] || '';
+      const named = (names || []).filter((n) => n && !(n !== full && full.startsWith(n)));
+      if (named.some((n) => t.includes(norm(n)))) return abbr;
     }
     return null;
   }
@@ -171,6 +175,8 @@ export async function resolveLegs(rawLegs) {
           (!raw.opponent || [g.home, g.away].some((t) => sameTeam(t, raw.opponent)))) ||
         slate.find((g) => matchupHits(g, raw.matchup) === 1) ||
         (raw.type === 'teamprop' ? slate.find((g) => teamInText(g, raw.player || raw.raw)) : null) ||
+        // No matchup on the slip (Underdog, PrizePicks show just "Denver Nuggets · To win"): find the team by name.
+        (raw.type !== 'prop' ? slate.find((g) => teamInText(g, [raw.team, raw.raw].filter(Boolean).join(' '))) : null) ||
         slate.find((g) => [g.home, g.away].some((t) => sameTeam(t, raw.team) || sameTeam(t, raw.opponent))) ||
         null;
       if (game) date = dates[i];
@@ -202,7 +208,7 @@ export async function resolveLegs(rawLegs) {
     };
     const line = Number(raw.line);
     const side = raw.side === 'under' ? 'under' : 'over';
-    const pickTeam = [game.home, game.away].find((t) => sameTeam(t, raw.team)) || teamInText(game, raw.player || raw.raw);
+    const pickTeam = [game.home, game.away].find((t) => sameTeam(t, raw.team)) || teamInText(game, [raw.team, raw.player, raw.raw].filter(Boolean).join(' '));
 
     if (raw.type === 'prop') {
       const stat = leagueById(league).stats.find((s) => s.id === raw.stat);
