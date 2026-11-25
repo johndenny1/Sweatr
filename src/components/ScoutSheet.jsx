@@ -184,7 +184,7 @@ export function ScoutReport({ legs, odds, stake, onRatings }) {
 // One leg: rating + one-line take, with its own "Analysis" button for the details
 function ScoutLeg({ r, d, pending, failed }) {
   const [open, setOpen] = useState(false);
-  const hasMore = d.recent?.length || d.teams || d.news?.length || r.reasons?.length;
+  const hasMore = d.recent?.length || d.teams || d.news?.length || r.reasons?.length || d.context?.length;
   return (
     <div className={`scout-leg rate-${r.rating}`}>
       <div className="row between scout-leg-head">
@@ -216,6 +216,16 @@ function ScoutLeg({ r, d, pending, failed }) {
                   📰 {a.headline} <span className="muted">· ESPN</span>
                 </a>
               ))}
+            </div>
+          )}
+          {d.context?.length > 0 && (
+            <div className="scout-now">
+              <div className="scout-now-title">Right now</div>
+              <ul>
+                {d.context.map((x, i) => (
+                  <li key={i}>{x}</li>
+                ))}
+              </ul>
             </div>
           )}
           {r.reasons?.length > 0 && (

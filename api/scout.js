@@ -32,6 +32,7 @@ function compact(data) {
       ...(l.recent ? { last5: l.recent.map((r) => r.value), hits: l.hits, games: l.games, avg: l.avg } : {}),
       ...(l.injury ? { injury: `${l.injury.status}${l.injury.detail ? ` (${l.injury.detail})` : ''}` } : {}),
       ...(l.news?.length ? { news: l.news.map((a) => a.headline) } : {}),
+      ...(l.context?.length ? { now: l.context } : {}),
       ...(l.teams ? { teams: l.teams.map((t) => ({ team: t.team, record: t.record, last5: t.last5, avgFor: t.avgFor, avgAgainst: t.avgAgainst })) } : {}),
     })),
   };
@@ -41,13 +42,13 @@ function briefPrompt(data, odds) {
   const dec = americanToDecimal(odds);
   const price = dec ? `The slip's odds are ${odds} (the book prices it around 1 in ${Math.round(dec)}).` : '';
   return `You are the scout inside Sweatr, a bet-slip tracker. Give a FAST first read on this parlay. ${price}
-Data (last5 = the player's last 5 values, newest first, null = didn't play; hits = how many cleared the line):
+Data (last5 = the player's last 5 values, newest first, null = didn't play; hits = how many cleared the line; now = what's different about TODAY: teammates out and how he did without them, his role trend, what the opponent gives up, rest, home/away):
 ${JSON.stringify(compact(data))}
 
 Return ONLY JSON:
 {"overall":"Strong"|"Decent"|"Shaky"|"Long shot","headline":string,"watch":[string],"ratings":[{"i":number,"r":"strong"|"fair"|"weak"}]}
 
-Rules: headline max 12 words, casual and specific. watch = up to 3 short things to keep an eye on (weather, injuries, legs that depend on each other), MOST important first, each under 15 words. Use only facts in the data, no hit percentages. Props clearing 4-5 of 5 with no injury lean strong, 2-3 fair, 0-1 or an injury tag weak. 10+ legs is usually a Long shot. Rate every leg.`;
+Rules: headline max 12 words, casual and specific. watch = up to 3 short things to keep an eye on (weather, injuries, legs that depend on each other), MOST important first, each under 15 words. Use only facts in the data, no hit percentages. Don't rate off last5 alone: "now" can move a leg up or down a full rating (a key teammate out with a bigger role, a soft opponent, or a back-to-back and a shrinking role). Watch items should favor these right-now factors over plain hit counts. Props clearing 4-5 of 5 with nothing against them lean strong, 2-3 fair, 0-1 or an injury tag weak. 10+ legs is usually a Long shot. Rate every leg.`;
 }
 
 function prompt(data, odds) {
@@ -55,7 +56,7 @@ function prompt(data, odds) {
   const price = dec ? `The slip's odds are ${odds}, so the book is pricing it around 1 in ${Math.round(dec)}.` : '';
   return `You are the scout inside Sweatr, a sports-betting slip tracker. Someone is about to place this parlay and wants a quick, honest read on it. ${price}
 
-Here is everything we know, as JSON. "recent" lists the player's last 5 games (value null = didn't play). "hits" = how many of those cleared the line on the side they picked. Team legs show each team's last 5 results and scoring averages. Injuries and weather come from the game page.
+Here is everything we know, as JSON. "last5" lists the player's last 5 games (value null = didn't play). "hits" = how many of those cleared the line on the side they picked. "now" lists what's different about TODAY'S game: teammates who are out (what they usually produce and how this player did without them), whether his role (minutes, targets, carries) is growing or shrinking, his last-10 and home/away numbers, what the opponent has been allowing in this stat, and rest/back-to-backs. Team legs show each team's last 5 results and scoring averages. Injuries and weather come from the game page.
 
 ${JSON.stringify(compact(data))}
 
@@ -72,7 +73,9 @@ Rules:
 - Use ONLY numbers that are in the data. Never invent stats, matchups, trends or news. If something isn't in the data, don't mention it.
 - No hit percentages or win probabilities of your own. Talk in counts and averages ("cleared 4 of his last 5, averaging 71").
 - "take" is one short sentence. "reasons" are 1-3 short bullet-style phrases, each tied to a number or fact from the data.
-- Rating guide: props that cleared the line in 4-5 of the last 5 with no injury concern lean "strong"; 2-3 lean "fair"; 0-1, an injury tag, or bad weather for that stat lean "weak". Team legs: weigh recent results and scoring averages.
+- The last 5 games are only the starting point. Lead each take with whatever matters most RIGHT NOW from "now": a teammate out who frees up shots/targets/carries, a growing or shrinking role, a soft or tough opponent in this stat, rest or a back-to-back. If "now" changes the picture, say so ("only 2 of 5, but with Higgins out his targets jumped to 9").
+- Rating guide: start from hits (4-5 of 5 strong, 2-3 fair, 0-1 weak), then move it up or down a step for the "now" factors, an injury tag, or bad weather for that stat. Team legs: weigh recent results, scoring averages, who's missing on each side and rest.
+- Reasons should mix recent numbers with the right-now factors, most important first.
 - "news" holds real ESPN headlines that mention the player. Use one ONLY if it changes whether he plays or how much: a suspension, league discipline, an arrest or charge reported in the headline, a trade, a new role, or time away from the team. Repeat only what the headline says, and say it came from ESPN. Never mention or guess about relationships, family, mental health or rumors, and never infer anything beyond the headline.
 - Injury entries with a type like "Suspension" or "Personal" count as availability news.
 - Weather matters for outdoor football: gusts of 15+ mph or rain/snow hurt passing and kicking. If weather is null, say nothing about weather.

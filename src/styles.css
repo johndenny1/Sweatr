@@ -1132,3 +1132,8 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(155, 92, 255, 0.2); }
    apps shift fixed-bottom elements when the page is shorter than the screen) */
 html, body { min-height: 100%; }
 .app { box-sizing: border-box; min-height: 100vh; min-height: var(--app-h, 100dvh); }
+
+/* Sweat Check: right-now factors (teammates out, role, matchup, rest) */
+.scout-now { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(177, 140, 255, 0.08); border: 1px solid rgba(177, 140, 255, 0.18); }
+.scout-now-title { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #b18cff; margin-bottom: 6px; }
+.scout-now ul { margin: 0; padding-left: 16px; display: grid; gap: 5px; font-size: 13.5px; line-height: 1.35; }
