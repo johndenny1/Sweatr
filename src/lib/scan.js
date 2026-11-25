@@ -34,16 +34,29 @@ export const MAX_SHOTS = 4;
 export async function readSlip(fileOrFiles) {
   const files = (Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles]).slice(0, MAX_SHOTS);
   // Several tall screenshots: keep each a bit smaller so the upload stays fast
-  const images = await Promise.all(files.map((f) => imageToBase64(f, files.length > 1 ? 1600 : 1280, files.length > 2 ? 0.72 : 0.8)));
+  const images = await Promise.all(files.map((f) => imageToBase64(f, files.length > 2 ? 1400 : files.length > 1 ? 1600 : 1280, files.length > 2 ? 0.7 : 0.8)));
   const { data } = await supabase.auth.getSession();
-  const res = await fetch('/api/scan', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${data?.session?.access_token || ''}`,
-    },
-    body: JSON.stringify({ images, today: todayISO() }),
-  });
+  const send = () =>
+    fetch('/api/scan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${data?.session?.access_token || ''}`,
+      },
+      body: JSON.stringify({ images, today: todayISO() }),
+    });
+  // "Load failed" = the connection dropped (weak signal, app backgrounded). Try once more quietly.
+  let res;
+  try {
+    res = await send();
+  } catch {
+    try {
+      res = await send();
+    } catch {
+      throw new Error('Lost connection while reading the slip. Check your signal and try again.');
+    }
+  }
+  if (res.status === 504) throw new Error('That took too long to read. Try again, or fewer screenshots at a time.');
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Scan failed (${res.status})`);
   return body;

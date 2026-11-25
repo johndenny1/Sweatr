@@ -2,11 +2,13 @@
 // Sends one or more screenshots of the same bet slip to Gemini (free tier) or Claude and returns the legs it reads off it.
 // Matching those legs to real games/players happens in the browser (src/lib/scan.js).
 
+export const config = { maxDuration: 60 };
+
 import { requireUser } from './_auth.js';
 import { admin, hasAdmin, sign, sha256 } from './_admin.js';
 import { legFingerprint } from '../src/lib/fingerprint.js';
 import { dedupeLegs } from './_dedupe.js';
-import { parseSlipReply } from './_parseSlip.js';
+import { parseSlipReply, mergeSlips } from './_parseSlip.js';
 import { askGemini } from './_gemini.js';
 import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
@@ -90,13 +92,24 @@ export default async function handler(req, res) {
     if (images.reduce((n, x) => n + x.length, 0) > 4_200_000) return res.status(413).json({ error: 'Screenshots too large' });
     const day = /^\d{4}-\d{2}-\d{2}$/.test(today || '') ? today : new Date().toISOString().slice(0, 10);
 
-    const result = geminiKey
-      ? await askGemini(geminiKey, images, prompt(day, images.length))
-      : await askClaude(anthropicKey, images, prompt(day, images.length));
-    if (result.error) return res.status(502).json({ error: result.error });
+    const ask = (imgs) =>
+      geminiKey ? askGemini(geminiKey, imgs, prompt(day, imgs.length)) : askClaude(anthropicKey, imgs, prompt(day, imgs.length));
 
-    const text = result.text;
-    const parsed = parseSlipReply(text);
+    // Several screenshots: read each one at the same time (much faster than one giant read of a
+    // 20-leg slip), then merge. Overlapping legs are removed by dedupeLegs below.
+    let parsed, text;
+    if (images.length > 1) {
+      const results = await Promise.all(images.map((img) => ask([img])));
+      const ok = results.filter((r) => !r.error);
+      if (!ok.length) return res.status(502).json({ error: results[0].error });
+      text = ok.map((r) => r.text).join('\n');
+      parsed = mergeSlips(ok.map((r) => parseSlipReply(r.text)));
+    } else {
+      const result = await ask(images);
+      if (result.error) return res.status(502).json({ error: result.error });
+      text = result.text;
+      parsed = parseSlipReply(text);
+    }
     if (!parsed) {
       console.error('scan: unreadable reply', String(text).slice(0, 500));
       return res.status(502).json({ error: "Couldn't read that slip. Try again, or one screenshot at a time." });

@@ -27,13 +27,19 @@ export function parseSlipReply(text) {
   if (slips.length && slips.every((x) => x && typeof x === 'object' && !('legs' in x) && ('type' in x || 'player' in x))) {
     return { stake: null, odds: null, payout: null, legs: slips };
   }
-  const objs = slips.filter((x) => x && typeof x === 'object');
+  return mergeSlips(slips);
+}
+
+// Several reads of the same slip (one per screenshot) → one slip. Legs are deduped by the caller.
+export function mergeSlips(list) {
+  const objs = list.filter((x) => x && typeof x === 'object');
   if (!objs.length) return null;
   const first = (k) => objs.map((x) => x[k]).find((x) => x != null && x !== '');
   return {
     stake: first('stake') ?? null,
     odds: first('odds') ?? null,
     payout: first('payout') ?? null,
+    multiplier: first('multiplier') ?? null,
     // placed if any screenshot shows it was placed; not placed only if one clearly says so and none says placed
     placed: objs.some((x) => x.placed === true) ? true : objs.some((x) => x.placed === false) ? false : null,
     placed_evidence: first('placed_evidence') ?? null,
