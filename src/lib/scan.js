@@ -133,6 +133,15 @@ export async function resolveLegs(rawLegs) {
         const player = r.players.find((p) => sameName(p.name, name));
         if (player) return { game: r.g, player, date };
       }
+      // In the slip's own game only: a cut-off or partial name ("ew Golden", "Mumpfield") still
+      // counts if exactly one player in that game has that last name.
+      if (gamesList.length === 1) {
+        const last = norm(name).split(' ').pop();
+        if (last && last.length >= 4) {
+          const same = rosters[0].players.filter((p) => norm(p.name).split(' ').pop() === last);
+          if (same.length === 1) return { game: rosters[0].g, player: same[0], date };
+        }
+      }
       return null;
     };
     for (const g of preferred) {
@@ -229,7 +238,10 @@ export async function resolveLegs(rawLegs) {
 
     // Props: find the player in that game, or anywhere on the slate (teams on slips can be missing or wrong).
     if (raw.type === 'prop') {
-      const found = await findPlayer(league, raw.player, game ? [game] : [], slates, dates);
+      // The AI's "player" can be a cropped name off the screenshot edge; the leg text often has the full one.
+      const fromText = String(raw.raw || '').split(/[:·|]/)[0].replace(/\b(over|under|o|u)\b.*$/i, '').trim();
+      let found = await findPlayer(league, raw.player, game ? [game] : [], slates, dates);
+      if (!found && fromText && norm(fromText) !== norm(raw.player)) found = await findPlayer(league, fromText, game ? [game] : [], slates, dates);
       if (found) {
         game = found.game;
         date = found.date;
