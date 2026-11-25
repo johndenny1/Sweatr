@@ -14,7 +14,7 @@ import { normalizeTeamProp } from '../src/lib/teamProps.js';
 
 const STAT_IDS = `
 NBA / college basketball (cbb): pts, reb, ast, pra (pts+reb+ast), pr (pts+reb), pa (pts+ast), ra (reb+ast), 3pm, stl, blk
-NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), passyds, passtd, rushyds, recyds, rec, rushrec (rush+rec yards), passrush (pass+rush yards), rushatt (rush attempts), anytd (anytime touchdown), firsttd (first touchdown scorer of the game), int (interceptions thrown)
+NFL / college football (cfb): dsttd (team D/ST touchdowns, teamprop only), teampts (team's own points, teamprop only), passyds, passtd, passcmp (pass completions), passatt (pass attempts), rushyds, recyds, rec, rushrec (rush+rec yards), passrush (pass+rush yards), rushatt (rush attempts), anytd (anytime touchdown), firsttd (first touchdown scorer of the game), int (interceptions thrown)
 MLB: h (hits), hr (home runs), rbi, r (runs), hrr (hits+runs+RBIs), bb (walks), k (pitcher strikeouts)`;
 
 function prompt(today, count = 1) {
@@ -62,6 +62,7 @@ Rules:
 - Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
 - "Yes" on a leg means side "over"; "No" means side "under" (e.g. "No · Bengals D/ST: 1+ touchdowns" = under 0.5).
+- A team total ("Packers over 17.5 points", "GB team total o17.5") is type "teamprop", stat "teampts", team = that team, player null, side over/under, line = the number. "Packers win by over 3.5 points" is a spread: type "spread", team GB, line -3.5.
 - A team defense / special teams touchdown leg ("D/ST", "Defense/ST", "defensive or return TD") is type "teamprop", stat "dsttd", team = that team's abbreviation, player null, line 0.5 for "1+".
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.
 - "placed": true when the screen shows a bet that already exists: a bet/ticket/order ID, "Bet placed", "Open position", "Open bets"/"My bets", a Cash out / Sell button, a "Current value", or a placed date/time. false when it shows a slip still being built: a "Place bet", "Review", "Submit", "Confirm", "Add to betslip" or "Buy" button, or an editable stake box. null if you can't tell.

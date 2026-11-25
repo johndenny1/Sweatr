@@ -194,7 +194,12 @@ export async function gatherScout(legs) {
         const all = ten.map((r, k) => {
           const box = boxes[k];
           if (!box) return { date: r.date, opp: r.opp, home: r.home, value: null, box: null };
-          if (leg.type === 'teamprop') return { date: r.date, opp: r.opp, home: r.home, value: Number(box.game?.dstTd?.[team]) || 0, box };
+          if (leg.type === 'teamprop') {
+            const v = leg.stat === 'teampts'
+              ? (box.game?.home === team ? box.game?.homeScore : box.game?.awayScore)
+              : box.game?.dstTd?.[team];
+            return { date: r.date, opp: r.opp, home: r.home, value: Number(v) || 0, box };
+          }
           const p = box.players.find((x) => x.id === String(leg.playerId));
           const on = played(p, leg.league);
           return { date: r.date, opp: r.opp, home: r.home, value: on ? statValue(p.stats, leg.league, leg.stat) : null, p: on ? p : null, box };

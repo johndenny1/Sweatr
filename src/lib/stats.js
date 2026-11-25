@@ -18,6 +18,8 @@ const HOOPS = [
 const FOOTBALL = [
   { id: 'passyds', label: 'Passing Yards', keys: ['passing.passingYards'] },
   { id: 'passtd', label: 'Passing TDs', keys: ['passing.passingTouchdowns'] },
+  { id: 'passcmp', label: 'Pass Completions', keys: ['passing.completions'] },
+  { id: 'passatt', label: 'Pass Attempts', keys: ['passing.passingAttempts'] },
   { id: 'rushyds', label: 'Rushing Yards', keys: ['rushing.rushingYards'] },
   { id: 'recyds', label: 'Receiving Yards', keys: ['receiving.receivingYards'] },
   { id: 'rec', label: 'Receptions', keys: ['receiving.receptions'] },

@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { getGames, getRoster, todayISO } from './api.js';
+import { getGames, getRoster, searchPlayer, todayISO } from './api.js';
 import { leagueById } from './stats.js';
 import { normalizeTeamProp } from './teamProps.js';
 
@@ -145,6 +145,18 @@ export async function resolveLegs(rawLegs) {
       const hit = await search(slates[i], dates[i]);
       if (hit) return hit;
     }
+    // Not on any roster page (practice-squad call-up, just signed): ESPN search, placed in the game
+    // the slip names. The box score uses the same player id, so grading still works.
+    if (preferred.length) {
+      const g = preferred[0];
+      const hits = (await searchPlayer(league, name)).filter((p) => sameName(p.name, name));
+      const pick = hits.find((p) => sameTeam(p.team, g.home) || sameTeam(p.team, g.away)) || (hits.length === 1 ? hits[0] : null);
+      if (pick) {
+        const i = slates.findIndex((sl) => sl.includes(g));
+        const team = [g.home, g.away].find((t) => sameTeam(t, pick.team)) || pick.team || '';
+        return { game: g, player: { id: pick.id, name: pick.name, team, position: '', active: true }, date: dates[Math.max(i, 0)] };
+      }
+    }
     return null;
   }
 
@@ -264,8 +276,9 @@ export async function resolveLegs(rawLegs) {
       };
     }
     if (raw.type === 'teamprop') {
-      if (!pickTeam) return { miss: { label, reason: "Couldn't tell which team's D/ST" } };
-      return { leg: { ...base, type: 'teamprop', pick: pickTeam, stat: 'dsttd', side, line: Number.isFinite(line) ? line : 0.5 } };
+      const stat = raw.stat === 'teampts' ? 'teampts' : 'dsttd';
+      if (!pickTeam) return { miss: { label, reason: stat === 'teampts' ? "Couldn't tell which team" : "Couldn't tell which team's D/ST" } };
+      return { leg: { ...base, type: 'teamprop', pick: pickTeam, stat, side, line: Number.isFinite(line) ? line : 0.5 } };
     }
     if (raw.type === 'total' && Number.isFinite(line)) return { leg: { ...base, type: 'total', side, line } };
     if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) return { leg: { ...base, type: 'spread', pick: pickTeam, line } };

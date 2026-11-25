@@ -13,6 +13,7 @@ async function call(params) {
 
 export const getGames = (league, date) => call({ action: 'games', league, date });
 export const getRoster = (league, team) => call({ action: 'roster', league, team });
+export const searchPlayer = (league, name) => call({ action: 'findplayer', league, name }).catch(() => []);
 // Last copy of every box score / game page we've fetched, so screens can show it instantly
 // while a fresh copy loads in the background (no "Loading…" when you tap around).
 const boxCache = new Map();

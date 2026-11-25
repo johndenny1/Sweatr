@@ -43,9 +43,12 @@ export function evaluateLeg(leg, game, players) {
   }
 
   if (leg.type === 'teamprop') {
-    const current = Number(game.dstTd?.[leg.pick]) || 0;
+    const pts = leg.stat === 'teampts';
+    const current = pts
+      ? Number(leg.pick === game.home ? game.homeScore : game.awayScore) || 0
+      : Number(game.dstTd?.[leg.pick]) || 0;
     const line = Number(leg.line);
-    const summary = `${leg.pick} D/ST: ${current} TD${current === 1 ? '' : 's'}`;
+    const summary = pts ? `${leg.pick}: ${current} pts` : `${leg.pick} D/ST: ${current} TD${current === 1 ? '' : 's'}`;
     const progress = line > 0 ? Math.min(current / line, 1) : current > 0 ? 1 : 0;
     if (!started) return { status: 'pending', summary, current, progress: 0 };
     if (leg.side === 'over') {
@@ -101,6 +104,7 @@ export function describeLeg(leg) {
   }
   if (leg.type === 'teamprop') {
     const line = Number(leg.line);
+    if (leg.stat === 'teampts') return `${leg.pick} team total ${leg.side === 'under' ? 'Under' : 'Over'} ${leg.line}`;
     if (line === 0.5) return leg.side === 'under' ? `No ${leg.pick} D/ST touchdown` : `${leg.pick} D/ST scores a touchdown`;
     return `${leg.pick} D/ST ${leg.side === 'under' ? 'Under' : 'Over'} ${leg.line} ${TEAM_STATS.dsttd.label}`;
   }

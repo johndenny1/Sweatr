@@ -10,6 +10,11 @@ export const isDstText = (s) => DST.test(String(s || ''));
 export function normalizeTeamProp(leg) {
   const text = [leg.player, leg.raw, leg.stat].filter(Boolean).join(' ');
   const already = String(leg.type || '').toLowerCase() === 'teamprop';
+  // Team total ("Packers over 17.5 points"): the team's own score, not a D/ST leg
+  if ((already || leg.stat === 'teampts') && !isDstText(text)) {
+    const line = Number(leg.line);
+    return { ...leg, type: 'teamprop', stat: 'teampts', player: null, line: Number.isFinite(line) ? line : 0.5 };
+  }
   if (!already && !(isDstText(text) && /touch\s*down|\btd/i.test(text))) return leg;
   // "CIN Bengals D/ST" → team "CIN" when the slip doesn't list the team separately
   const words = String(leg.player || leg.raw || '')
@@ -22,4 +27,4 @@ export function normalizeTeamProp(leg) {
   return { ...leg, type: 'teamprop', stat: 'dsttd', team, player: null, line: Number.isFinite(line) ? line : 0.5 };
 }
 
-export const TEAM_STATS = { dsttd: { label: 'D/ST TDs' } };
+export const TEAM_STATS = { dsttd: { label: 'D/ST TDs' }, teampts: { label: 'team points' } };
