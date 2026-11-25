@@ -203,10 +203,34 @@ export async function resolveLegs(rawLegs) {
 
   // Every leg is matched at the same time, and each leg checks all candidate dates at once.
   const results = await Promise.all(rawLegs.map((raw) => matchOne(raw)));
+
+  // Second chance for legs that missed, using the rest of the slip as context. Screenshots are read
+  // one at a time, so a screenshot with no game header can come back with the wrong sport (rookies the
+  // AI knows from college get tagged "cfb") or no matchup. Retry those in the slip's main sport and games.
+  const hits = results.filter((r) => r.leg).map((r) => r.leg);
+  if (hits.length && results.some((r) => r.miss)) {
+    const count = {};
+    for (const l of hits) count[l.league] = (count[l.league] || 0) + 1;
+    const mainLeague = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+    const slipGames = [...new Map(hits.filter((l) => l.league === mainLeague).map((l) => [l.gameId, l])).values()];
+    await Promise.all(
+      results.map(async (r, i) => {
+        if (!r.miss || String(rawLegs[i].type || '').toLowerCase() !== 'prop') return;
+        const raw = rawLegs[i];
+        const sameSport = String(raw.league || '').toLowerCase() === mainLeague;
+        const retry = await matchOne(
+          { ...raw, league: mainLeague, team: sameSport ? raw.team : null, opponent: sameSport ? raw.opponent : null },
+          slipGames.map((l) => l.gameId)
+        );
+        if (retry.leg) results[i] = retry;
+      })
+    );
+  }
+
   const matched = results.filter((r) => r.leg).map((r) => r.leg);
   const unmatched = results.filter((r) => r.miss).map((r) => r.miss);
 
-  async function matchOne(rawIn) {
+  async function matchOne(rawIn, slipGameIds = []) {
     let raw = normalizeTeamProp(rawIn);
     const league = String(raw.league || '').toLowerCase();
     const label = raw.raw || [raw.player, raw.team, raw.stat, raw.line].filter(Boolean).join(' ');
@@ -240,8 +264,10 @@ export async function resolveLegs(rawLegs) {
     if (raw.type === 'prop') {
       // The AI's "player" can be a cropped name off the screenshot edge; the leg text often has the full one.
       const fromText = String(raw.raw || '').split(/[:·|]/)[0].replace(/\b(over|under|o|u)\b.*$/i, '').trim();
-      let found = await findPlayer(league, raw.player, game ? [game] : [], slates, dates);
-      if (!found && fromText && norm(fromText) !== norm(raw.player)) found = await findPlayer(league, fromText, game ? [game] : [], slates, dates);
+      // Where to look first: the leg's own game, or (second pass) the games the rest of the slip is on
+      const preferred = game ? [game] : slates.flat().filter((g) => slipGameIds.includes(g.id));
+      let found = await findPlayer(league, raw.player, preferred, slates, dates);
+      if (!found && fromText && norm(fromText) !== norm(raw.player)) found = await findPlayer(league, fromText, preferred, slates, dates);
       if (found) {
         game = found.game;
         date = found.date;
