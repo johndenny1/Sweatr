@@ -151,6 +151,22 @@ export async function resolveLegs(rawLegs) {
     return null;
   }
 
+  function pickedTeam(g, raw) {
+    const direct = [g.home, g.away].find((t) => sameTeam(t, raw.team));
+    if (direct) return direct;
+    for (const text of [raw.team, raw.player]) {
+      const hit = text && teamInText(g, text);
+      if (hit) return hit;
+    }
+    // Leg text with the matchup line taken out, and only if exactly one team is named in what's left.
+    let rest = String(raw.raw || '');
+    if (raw.matchup) rest = rest.replace(raw.matchup, ' ');
+    rest = rest.replace(/[^\n·|,]*\b(vs\.?|@|at)\b[^\n·|,]*/gi, ' ');
+    const home = teamInText({ ...g, away: '', awayNames: [] }, rest);
+    const away = teamInText({ ...g, home: '', homeNames: [] }, rest);
+    return home && away ? null : home || away || null;
+  }
+
   // Every leg is matched at the same time, and each leg checks all candidate dates at once.
   const results = await Promise.all(rawLegs.map((raw) => matchOne(raw)));
   const matched = results.filter((r) => r.leg).map((r) => r.leg);
@@ -212,7 +228,9 @@ export async function resolveLegs(rawLegs) {
     };
     const line = Number(raw.line);
     const side = raw.side === 'under' ? 'under' : 'over';
-    const pickTeam = [game.home, game.away].find((t) => sameTeam(t, raw.team)) || teamInText(game, [raw.team, raw.player, raw.raw].filter(Boolean).join(' '));
+    // Which side was picked. Never read it off the whole leg text: on Underdog that text can include the
+    // matchup ("Packers vs Rams · Green Bay Packers · To win"), which names both teams.
+    const pickTeam = pickedTeam(game, raw);
 
     if (raw.type === 'prop') {
       const stat = leagueById(league).stats.find((s) => s.id === raw.stat);
