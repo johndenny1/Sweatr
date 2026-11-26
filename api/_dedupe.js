@@ -1,51 +1,105 @@
 // Removes legs read twice from overlapping screenshots of one slip.
+//
+// Each screenshot is read on its own, so the same leg can come back worded differently:
+// the league can differ (a rookie tagged "cfb" in one read, "nfl" in the other), the team can be
+// "DAL" in one and "Dallas Cowboys" in the other, and the opponent can be filled in or missing.
+// So legs are compared on what decides the bet (who, stat, side, line), not on those labels.
+// A parlay can't hold the same bet twice, so a match is the same leg read twice.
 
-// Same bet = same player (or team) + stat + over/under + line. A parlay can't hold the same bet twice,
-// so a repeat is the same leg read from two overlapping screenshots.
-const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim();
-function who(leg) {
-  const name = norm(leg.player);
-  if (name) {
-    const parts = name.split(' ');
-    return `p:${parts[0][0]}.${parts.at(-1)}`; // "J. Tatum" and "Jayson Tatum" match
+const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(jr|sr|ii|iii|iv)\b/g, '').replace(/\s+/g, ' ').trim();
+const flat = (x) => norm(x).replace(/ /g, '');
+
+const TEAM_ALIASES = [
+  ['gs', 'gsw'], ['ny', 'nyk'], ['sa', 'sas'], ['no', 'nop', 'nor'], ['pho', 'phx'],
+  ['uta', 'utah', 'uth'], ['was', 'wsh', 'wash'], ['bkn', 'bk', 'brk'], ['cha', 'cho'],
+  ['jax', 'jac'], ['lar', 'la'], ['lv', 'lvr', 'oak'], ['kc', 'kan'], ['tb', 'tam'],
+  ['chw', 'cws'], ['sd', 'sdp'], ['sf', 'sfg'], ['ath', 'oak'],
+];
+
+// "DAL" ~ "Dallas Cowboys", "KC" ~ "Kansas City Chiefs", "GB" ~ "Green Bay Packers"
+function sameTeam(a, b) {
+  const x = flat(a);
+  const y = flat(b);
+  if (!x || !y) return false;
+  if (x === y || TEAM_ALIASES.some((g) => g.includes(x) && g.includes(y))) return true;
+  const [short, long, longWords] = x.length <= y.length ? [x, y, norm(b)] : [y, x, norm(a)];
+  if (short.length < 2 || short.length > 4) return false;
+  const initials = longWords.split(' ').map((w) => w[0]).join('');
+  return long.startsWith(short) || initials.startsWith(short);
+}
+
+// "J. Tatum" ~ "Jayson Tatum", but "Eli Johnson" is not "Emmett Johnson"
+function samePlayer(a, b) {
+  const x = norm(a).split(' ');
+  const y = norm(b).split(' ');
+  if (!x[0] || !y[0]) return false;
+  if (x.at(-1) !== y.at(-1)) return false;
+  if (x.length === 1 || y.length === 1) return true; // only a last name was read
+  const [fx, fy] = [x[0], y[0]];
+  if (fx.length === 1 || fy.length === 1) return fx[0] === fy[0];
+  return fx.startsWith(fy) || fy.startsWith(fx);
+}
+
+const lineOf = (l) => {
+  const n = Number(l.line);
+  return Number.isFinite(n) ? Math.round(n * 10) / 10 : null;
+};
+const sideOf = (l) => (l.side === 'under' ? 'u' : 'o');
+const typeOf = (l) => String(l.type || '').toLowerCase();
+const sameMatchup = (a, b) => flat(a.matchup) && flat(a.matchup) === flat(b.matchup);
+
+export function sameLeg(a, b, loose = false) {
+  const type = typeOf(a);
+  if (type !== typeOf(b) || lineOf(a) !== lineOf(b)) return false;
+  const stat = String(a.stat || '').toLowerCase() === String(b.stat || '').toLowerCase();
+  switch (type) {
+    case 'prop':
+      if (!stat || sideOf(a) !== sideOf(b)) return false;
+      return loose ? norm(a.player).split(' ').at(-1) === norm(b.player).split(' ').at(-1) : samePlayer(a.player, b.player);
+    case 'teamprop':
+      return stat && sideOf(a) === sideOf(b) && sameTeam(a.team, b.team);
+    case 'total': {
+      if (sideOf(a) !== sideOf(b)) return false;
+      if (sameMatchup(a, b)) return true;
+      return [a.team, a.opponent].filter(Boolean).some((t) => [b.team, b.opponent].some((u) => sameTeam(t, u)));
+    }
+    case 'spread':
+    case 'moneyline':
+      // Both sides of one game at the same spread/moneyline can't be on one slip, so the same matchup
+      // heading + same line is the same leg even if the team was written two different ways.
+      return sameTeam(a.team, b.team) || sameMatchup(a, b) || (loose && String(a.league || '') === String(b.league || ''));
+    default:
+      return norm(a.raw) !== '' && norm(a.raw) === norm(b.raw);
   }
-  return `t:${norm(leg.team)}|${norm(leg.opponent)}`;
 }
-export function legKey(leg) {
-  const type = String(leg.type || '').toLowerCase();
-  const line = Number(leg.line);
-  return [
-    String(leg.league || '').toLowerCase(),
-    type,
-    type === 'total' ? [norm(leg.team), norm(leg.opponent)].sort().join('/') : who(leg),
-    String(leg.stat || '').toLowerCase(),
-    type === 'prop' || type === 'teamprop' || type === 'total' ? (leg.side === 'under' ? 'u' : 'o') : '',
-    Number.isFinite(line) ? Math.round(line * 10) / 10 : '',
-  ].join('|');
-}
-export function dedupeLegs(legs) {
-  const seen = new Map();
+
+export function dedupeLegs(legs, { loose = false } = {}) {
+  // Most common league on the slip: when two reads of a leg disagree on league, trust this one.
+  const count = {};
+  for (const l of legs) {
+    const lg = String(l.league || '').toLowerCase();
+    if (lg) count[lg] = (count[lg] || 0) + 1;
+  }
+  const mainLeague = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+  const filled = (l) => Object.values(l || {}).filter((v) => v != null && v !== '').length;
+
+  const out = [];
   for (const leg of legs) {
-    const k = legKey(leg);
-    const prev = seen.get(k);
-    // keep the fuller reading of the leg (a cut-off copy has less filled in)
-    const filled = (l) => Object.values(l || {}).filter((v) => v != null && v !== '').length;
-    if (!prev) {
-      seen.set(k, leg);
+    const i = out.findIndex((prev) => sameLeg(prev, leg, loose));
+    if (i === -1) {
+      out.push({ ...leg });
       continue;
     }
+    const prev = out[i];
+    // keep the fuller reading of the leg (a cut-off copy has less filled in)
     const best = filled(leg) > filled(prev) ? { ...leg } : { ...prev };
     // keep the full name if one copy was abbreviated ("B. Purdy" vs "Brock Purdy")
     const names = [leg.player, prev.player].filter(Boolean).sort((a, b) => String(b).length - String(a).length);
     if (names.length) best.player = names[0];
     for (const f of ['matchup', 'team', 'opponent', 'date']) best[f] = best[f] ?? leg[f] ?? prev[f];
-    seen.set(k, best);
+    const leagues = [prev.league, leg.league].map((x) => String(x || '').toLowerCase());
+    if (leagues[0] !== leagues[1] && leagues.includes(mainLeague)) best.league = mainLeague;
+    out[i] = best; // stays in the slot where the leg first appeared (slip order)
   }
-  // keep slip order (first time each leg appeared)
-  const order = [];
-  for (const leg of legs) {
-    const k = legKey(leg);
-    if (!order.includes(k)) order.push(k);
-  }
-  return order.map((k) => seen.get(k));
+  return out;
 }

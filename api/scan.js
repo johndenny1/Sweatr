@@ -34,6 +34,7 @@ Read every leg and return ONLY a JSON object, no other text, in this shape:
   "placed": true | false | null,    // has this bet actually been placed? (see rules)
   "placed_evidence": string or null, // the words/buttons on screen that show it, e.g. "Cash out button", "Bet ID 4821", "Place bet button"
   "ticket_id": string or null,      // bet/ticket/order/receipt ID if one is shown, exactly as printed
+  "leg_count": number or null,      // how many legs the slip SAYS it has, if printed (e.g. "19 markets", "6-leg parlay", "4 picks")
   "legs": [
     {
       "league": "nfl" | "nba" | "mlb" | "cfb" | "cbb",
@@ -130,7 +131,11 @@ export default async function handler(req, res) {
     // Overlapping screenshots: never keep the same leg twice, even if the AI repeats it
     const placed = parsed.placed === true ? true : parsed.placed === false ? false : null;
     const ticket = typeof parsed.ticket_id === 'string' ? parsed.ticket_id.replace(/\s+/g, '').toUpperCase() : '';
-    const legs = dedupeLegs((Array.isArray(parsed.legs) ? parsed.legs : []).map(normalizeTeamProp));
+    let legs = dedupeLegs((Array.isArray(parsed.legs) ? parsed.legs : []).map(normalizeTeamProp));
+    // The slip prints its own leg count ("19 markets"). More legs than that means a repeat slipped
+    // through, so merge again on the bet alone (stat, side, line + last name or team).
+    const expected = Number.isInteger(parsed.leg_count) && parsed.leg_count > 0 ? parsed.leg_count : null;
+    if (expected && legs.length > expected) legs = dedupeLegs(legs, { loose: true });
 
     // Signed receipt of exactly what was read off the image. /api/save checks the
     // saved slip against it, so stake, odds and lines can't be changed afterwards.
@@ -159,7 +164,7 @@ export default async function handler(req, res) {
         })
       : null;
 
-    return res.status(200).json({ stake, odds, legs, token, duplicate, placed, placedEvidence: parsed.placed_evidence || null });
+    return res.status(200).json({ stake, odds, legs, expectedLegs: expected, token, duplicate, placed, placedEvidence: parsed.placed_evidence || null });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }

@@ -44,6 +44,7 @@ export function mergeSlips(list) {
     placed: objs.some((x) => x.placed === true) ? true : objs.some((x) => x.placed === false) ? false : null,
     placed_evidence: first('placed_evidence') ?? null,
     ticket_id: first('ticket_id') ?? null,
+    leg_count: first('leg_count') ?? null,
     legs: objs.flatMap((x) => (Array.isArray(x.legs) ? x.legs : [])),
   };
 }

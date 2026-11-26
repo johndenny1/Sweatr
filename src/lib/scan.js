@@ -89,15 +89,36 @@ function sameTeam(a, b) {
   return TEAM_ALIASES.some((g) => g.includes(x) && g.includes(y));
 }
 
-function sameName(a, b) {
-  const x = norm(a);
-  const y = norm(b);
-  if (!x || !y) return false;
-  if (x === y) return true;
+// How well a roster name matches the name on the slip:
+// 3 = same name, 2 = short form ("Cam" / "Cameron"), 1 = initial only ("E. Johnson"), 0 = different.
+// "Eli Johnson" is NOT "Emmett Johnson": two full first names have to actually agree.
+function nameScore(candidate, wanted) {
+  const x = norm(candidate);
+  const y = norm(wanted);
+  if (!x || !y) return 0;
+  if (x === y) return 3;
   const [xf, ...xr] = x.split(' ');
   const [yf, ...yr] = y.split(' ');
-  // Same last name + same first initial ("J. Tatum" vs "Jayson Tatum")
-  return xr.join(' ') === yr.join(' ') && xf[0] === yf[0];
+  if (!xr.length || !yr.length || xr.join(' ') !== yr.join(' ')) return 0;
+  if (xf.length > 1 && yf.length > 1) return xf.startsWith(yf) || yf.startsWith(xf) ? 2 : 0;
+  return xf[0] === yf[0] ? 1 : 0;
+}
+const sameName = (a, b) => nameScore(a, b) > 0;
+
+// Best roster match for a name. An initial-only match ("E. Johnson") counts only if it's the only one.
+function bestPlayer(players, name) {
+  let best = null;
+  let ties = 0;
+  for (const p of players) {
+    const s = nameScore(p.name, name);
+    if (!s) continue;
+    if (!best || s > best.s) {
+      best = { s, p };
+      ties = 0;
+    } else if (s === best.s) ties++;
+  }
+  if (!best || (best.s === 1 && ties)) return null;
+  return best.p;
 }
 
 function addDays(iso, n) {
@@ -129,16 +150,23 @@ export async function resolveLegs(rawLegs) {
           return { g, players: [...a.map((p) => ({ ...p, team: p.team || g.away })), ...h.map((p) => ({ ...p, team: p.team || g.home }))] };
         })
       );
-      for (const r of rosters) {
-        const player = r.players.find((p) => sameName(p.name, name));
-        if (player) return { game: r.g, player, date };
+      const all = rosters.flatMap((r) => r.players.map((p) => ({ ...p, _g: r.g })));
+      const best = bestPlayer(all, name);
+      if (best) {
+        const { _g, ...player } = best;
+        return { game: _g, player, date };
       }
       // In the slip's own game only: a cut-off or partial name ("ew Golden", "Mumpfield") still
       // counts if exactly one player in that game has that last name.
       if (gamesList.length === 1) {
-        const last = norm(name).split(' ').pop();
+        const words = norm(name).split(' ');
+        const last = words.pop();
+        const first = words[0] || ''; // a cut-off first name ("ew" of "Matthew"), or none
         if (last && last.length >= 4) {
-          const same = rosters[0].players.filter((p) => norm(p.name).split(' ').pop() === last);
+          const same = rosters[0].players.filter((p) => {
+            const pw = norm(p.name).split(' ');
+            return pw.at(-1) === last && (!first || first.length === 1 || pw[0].endsWith(first) || pw[0].startsWith(first));
+          });
           if (same.length === 1) return { game: rosters[0].g, player: same[0], date };
         }
       }
@@ -158,7 +186,9 @@ export async function resolveLegs(rawLegs) {
     // the slip names. The box score uses the same player id, so grading still works.
     if (preferred.length) {
       const g = preferred[0];
-      const hits = (await searchPlayer(league, name)).filter((p) => sameName(p.name, name));
+      const found = (await searchPlayer(league, name)).filter((p) => sameName(p.name, name));
+      const top = Math.max(0, ...found.map((p) => nameScore(p.name, name)));
+      const hits = found.filter((p) => nameScore(p.name, name) === top);
       const pick = hits.find((p) => sameTeam(p.team, g.home) || sameTeam(p.team, g.away)) || (hits.length === 1 ? hits[0] : null);
       if (pick) {
         const i = slates.findIndex((sl) => sl.includes(g));
