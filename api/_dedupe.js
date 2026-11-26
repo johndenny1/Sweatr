@@ -73,7 +73,27 @@ export function sameLeg(a, b, loose = false) {
   }
 }
 
+// Legs listed under the same game heading are in the same league. The AI sometimes tags a rookie with
+// his college league ("Emmett Johnson" under "KC Chiefs vs BUF Bills" read as cfb), so the majority
+// league under that heading wins.
+export function alignLeagues(legs) {
+  const byMatchup = {};
+  for (const l of legs) {
+    const m = flat(l.matchup);
+    const lg = String(l.league || '').toLowerCase();
+    if (!m || !lg) continue;
+    (byMatchup[m] ??= {})[lg] = (byMatchup[m][lg] || 0) + 1;
+  }
+  return legs.map((l) => {
+    const counts = byMatchup[flat(l.matchup)];
+    if (!counts) return l;
+    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    return counts[top] > (counts[String(l.league || '').toLowerCase()] || 0) ? { ...l, league: top } : l;
+  });
+}
+
 export function dedupeLegs(legs, { loose = false } = {}) {
+  legs = alignLeagues(legs);
   // Most common league on the slip: when two reads of a leg disagree on league, trust this one.
   const count = {};
   for (const l of legs) {

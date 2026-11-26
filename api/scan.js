@@ -60,6 +60,7 @@ Rules:
 - "First touchdown scorer" / "First TD" is stat "firsttd", side "over", line 0.5. ("Last TD" and "2+ TDs" are not firsttd.)
 - For a game total, put both teams in team/opponent.
 - College games are "cfb" (football) or "cbb" (basketball).
+- The league comes from the game the leg is listed under, NOT from where the player used to play. A rookie under an NFL matchup (e.g. "KC Chiefs vs BUF Bills") is "nfl" even if you know him from college. Every leg under one matchup heading has the same league.
 - Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
 - "Yes" on a leg means side "over"; "No" means side "under" (e.g. "No · Bengals D/ST: 1+ touchdowns" = under 0.5).
