@@ -87,8 +87,10 @@ export function alignLeagues(legs) {
   return legs.map((l) => {
     const counts = byMatchup[flat(l.matchup)];
     if (!counts) return l;
-    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
-    return counts[top] > (counts[String(l.league || '').toLowerCase()] || 0) ? { ...l, league: top } : l;
+    // tie: pro league wins (a college star who just got drafted is the usual mix-up)
+    const pro = (x) => (['nfl', 'nba', 'mlb'].includes(x) ? 1 : 0);
+    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || pro(b) - pro(a))[0];
+    return top !== String(l.league || '').toLowerCase() ? { ...l, league: top } : l;
   });
 }
 
