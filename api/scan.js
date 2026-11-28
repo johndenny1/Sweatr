@@ -64,6 +64,8 @@ Rules:
 - Rosters change; do not fill in a player's team from memory. Use the matchup heading the leg sits under instead.
 - If a leg doesn't fit any type or stat id, still include it with your best guess and the raw text.
 - "Yes" on a leg means side "over"; "No" means side "under" (e.g. "No · Bengals D/ST: 1+ touchdowns" = under 0.5).
+- "X wins by over N points" is type "spread", team X, line -N. "X to win" / "X wins" is type "moneyline", team X. Keep team as the team named in the leg even when it says "No"; just set side "under" for a No. For every other spread and moneyline, side is "over".
+- College teams: team = the school as printed ("Ohio St.", "Arizona"); don't guess an abbreviation.
 - A team total ("Packers over 17.5 points", "GB team total o17.5") is type "teamprop", stat "teampts", team = that team, player null, side over/under, line = the number. "Packers win by over 3.5 points" is a spread: type "spread", team GB, line -3.5.
 - A team defense / special teams touchdown leg ("D/ST", "Defense/ST", "defensive or return TD") is type "teamprop", stat "dsttd", team = that team's abbreviation, player null, line 0.5 for "1+".
 - Prediction markets (Kalshi, Polymarket, etc.) show "Cost" (that's the stake) and "Max payout" (that's the payout) instead of odds. Percentages next to legs are prices, not lines.

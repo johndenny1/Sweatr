@@ -64,6 +64,9 @@ export async function readSlip(fileOrFiles) {
 
 // ---------- 3. Match what Claude read to real games and players ----------
 
+// Team names with St./St → State, so "Ohio St." matches "Ohio State"
+const schoolNorm = (s) => norm(s).replace(/\bst\b/g, 'state').replace(/\s+/g, ' ').trim();
+
 const norm = (s) =>
   String(s || '')
     .toLowerCase()
@@ -212,7 +215,24 @@ export async function resolveLegs(rawLegs) {
       const named = (names || []).filter((n) => n && !(n !== full && full.startsWith(n)));
       if (named.some((n) => t.includes(norm(n)))) return abbr;
     }
-    return null;
+    // Colleges go by the school name, which is the "city" part ("Arizona to win", "Ohio St. wins by…").
+    // Allowed when it's a whole-word match, isn't the start of a longer school ("Arizona State"), and only
+    // one of the two teams matches (so "Los Angeles" between two LA teams stays unmatched).
+    const tt = ` ${schoolNorm(text)} `;
+    const LONGER = /^(state|st|tech|am|a|christian|southern|international|central|atlantic|poly|wesleyan|baptist)\b/;
+    const loose = [[g.home, g.homeNames], [g.away, g.awayNames]].filter(([, names]) =>
+      (names || []).some((n) => {
+        const nn = schoolNorm(n);
+        if (!nn) return false;
+        let at = tt.indexOf(` ${nn} `);
+        while (at !== -1) {
+          if (!LONGER.test(tt.slice(at + nn.length + 2))) return true;
+          at = tt.indexOf(` ${nn} `, at + 1);
+        }
+        return false;
+      })
+    );
+    return loose.length === 1 ? loose[0][0] : null;
   }
 
   function pickedTeam(g, raw) {
@@ -349,8 +369,14 @@ export async function resolveLegs(rawLegs) {
       return { leg: { ...base, type: 'teamprop', pick: pickTeam, stat, side, line: Number.isFinite(line) ? line : 0.5 } };
     }
     if (raw.type === 'total' && Number.isFinite(line)) return { leg: { ...base, type: 'total', side, line } };
-    if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) return { leg: { ...base, type: 'spread', pick: pickTeam, line } };
-    if (raw.type === 'moneyline' && pickTeam) return { leg: { ...base, type: 'moneyline', pick: pickTeam } };
+    // A "No" on a yes/no market (Kalshi "No · Kentucky wins by over 6.5") is the other side of it:
+    // the other team +6.5, or the other team to win.
+    const other = pickTeam && (pickTeam === game.home ? game.away : game.home);
+    const no = raw.side === 'under' || /^\s*no\b/i.test(String(raw.raw || ''));
+    if (raw.type === 'spread' && pickTeam && Number.isFinite(line)) {
+      return { leg: { ...base, type: 'spread', pick: no ? other : pickTeam, line: no ? -line : line } };
+    }
+    if (raw.type === 'moneyline' && pickTeam) return { leg: { ...base, type: 'moneyline', pick: no ? other : pickTeam } };
     return { miss: { label, reason: 'Missing team or line' } };
   }
 
